@@ -813,7 +813,7 @@
         <p>Borra tus registros. Solo afecta a tu usuario.</p>
         <button class="settings-btn danger" id="resetRouteBtn">Reiniciar mis datos</button>
       </div>
-      <div class="app-version">Ruta X · v0.17 · Fix Admin + Eliminar + Geocoding</div>
+      <div class="app-version">Ruta X · v0.18 · Doble Geocoder</div>
     </div>
   </div>
 </div>
@@ -1342,17 +1342,44 @@
 
   function getGeoCache() { return safeParse(localStorage.getItem(GEOCODE_CACHE_KEY), {}); }
   function saveGeoCache(c) { try { localStorage.setItem(GEOCODE_CACHE_KEY, JSON.stringify(c)); } catch (e) {} }
+  
   function geocodeAddress(address) {
     var cache = getGeoCache(); var key = address.toLowerCase().trim();
     if (cache[key] && (Date.now() - cache[key].ts) < GEOCODE_CACHE_TTL_MS) return Promise.resolve({ lat: cache[key].lat, lng: cache[key].lng, cached: true });
     var q = address + (address.toLowerCase().indexOf(GEOCODE_COUNTRY.toLowerCase()) >= 0 ? '' : ', ' + GEOCODE_COUNTRY);
-    var url = 'https://nominatim.openstreetmap.org/search?format=json&limit=1&q=' + encodeURIComponent(q);
-    return fetch(url, { headers: { 'Accept': 'application/json' } }).then(function (r) { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); }).then(function (data) {
-      if (!data || !data.length) throw new Error('Dirección no encontrada');
-      var res = { lat: parseFloat(data[0].lat), lng: parseFloat(data[0].lon) };
-      cache[key] = { lat: res.lat, lng: res.lng, ts: Date.now() }; saveGeoCache(cache); return res;
-    });
+    
+    // 1. Intentar con Photon (Komoot) - Mucho más rápido y sin límites estrictos
+    var photonUrl = 'https://photon.komoot.io/api/?q=' + encodeURIComponent(q) + '&limit=1&lang=es';
+    
+    return fetch(photonUrl)
+      .then(function(r) { 
+        if (!r.ok) throw new Error('Photon HTTP ' + r.status); 
+        return r.json(); 
+      })
+      .then(function(data) {
+        if (data && data.features && data.features.length > 0) {
+          var coords = data.features[0].geometry.coordinates;
+          var res = { lat: coords[1], lng: coords[0] };
+          cache[key] = { lat: res.lat, lng: res.lng, ts: Date.now() }; saveGeoCache(cache);
+          return res;
+        }
+        throw new Error('Photon sin resultados');
+      })
+      .catch(function(err) {
+        console.warn('Photon falló, intentando Nominatim...', err);
+        // 2. Fallback a Nominatim
+        var nomUrl = 'https://nominatim.openstreetmap.org/search?format=json&limit=1&q=' + encodeURIComponent(q);
+        return fetch(nomUrl, { headers: { 'Accept': 'application/json' } })
+          .then(function(r) { if (!r.ok) throw new Error('Nominatim HTTP ' + r.status); return r.json(); })
+          .then(function(data2) {
+            if (!data2 || !data2.length) throw new Error('Dirección no encontrada');
+            var res = { lat: parseFloat(data2[0].lat), lng: parseFloat(data2[0].lon) };
+            cache[key] = { lat: res.lat, lng: res.lng, ts: Date.now() }; saveGeoCache(cache);
+            return res;
+          });
+      });
   }
+  
   function sleep(ms) { return new Promise(function (r) { setTimeout(r, ms); }); }
 
   async function optimizeRoute() {
