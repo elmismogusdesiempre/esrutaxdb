@@ -1,0 +1,2955 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="theme-color" content="#0A1F44">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>Ruta X · Mensajero</title>
+<style>
+  :root {
+    --navy-deep:#0A1F44;--navy:#0E3A6C;--navy-light:#1E5BB8;--accent:#FF6B35;
+    --ink:#1f2937;--muted:#6b7280;--line:#e5e7eb;--bg:#f4f6fa;
+    --green:#22c55e;--green-dark:#16a34a;--wa:#25D366;--purple:#8b5cf6;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+  body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:var(--bg);color:var(--ink);min-height:100vh;-webkit-font-smoothing:antialiased;}
+  #app{max-width:480px;margin:0 auto;min-height:100vh;background:var(--bg);padding-bottom:100px;position:relative;}
+  .hidden{display:none !important;}
+
+  .app-header{background:linear-gradient(135deg,#0A1F44 0%,#0E3A6C 55%,#1E5BB8 100%);color:white;padding:16px 18px 14px;}
+  .brand-row{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;}
+  .brand{display:flex;align-items:center;gap:10px;}
+  .logo-mark{display:block;width:38px;height:38px;flex-shrink:0;filter:drop-shadow(0 2px 4px rgba(0,0,0,0.15));}
+  .logo-mark svg{width:100%;height:100%;display:block;}
+  .wordmark{display:flex;align-items:baseline;gap:3px;line-height:1;letter-spacing:-0.3px;}
+  .wm-ruta{color:#fff;font-weight:600;font-size:19px;}
+  .wm-x{color:var(--accent);font-weight:800;font-size:22px;}
+  .icon-btn{background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.15);color:rgba(255,255,255,0.9);width:38px;height:38px;border-radius:10px;font-size:18px;cursor:pointer;transition:background 0.15s;display:flex;align-items:center;justify-content:center;}
+  .icon-btn:active{background:rgba(255,255,255,0.2);}
+  .messenger-bar{display:flex;align-items:center;gap:12px;padding:10px 12px;background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.1);border-radius:12px;margin-bottom:12px;}
+  .avatar{width:40px;height:40px;border-radius:50%;background:rgba(255,107,53,0.16);border:1.5px solid var(--accent);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:13px;flex-shrink:0;}
+  .messenger-info{flex:1;min-width:0;}
+  .messenger-name{font-weight:700;font-size:15px;}
+  .messenger-code{font-size:12px;opacity:0.8;margin-top:2px;}
+  .search-trigger{background:rgba(255,255,255,0.97);border-radius:12px;padding:12px 14px;display:flex;align-items:center;gap:10px;cursor:pointer;box-shadow:0 4px 12px rgba(10,31,68,0.2);transition:transform 0.15s;}
+  .search-trigger:active{transform:scale(0.99);}
+  .search-trigger-icon{display:flex;align-items:center;justify-content:center;width:26px;height:26px;background:var(--accent);border-radius:8px;flex-shrink:0;}
+  .search-trigger-icon svg{width:16px;height:16px;stroke:white;fill:none;stroke-width:2.5;}
+  .search-trigger-text{font-size:14px;color:#64748b;font-weight:500;flex:1;}
+
+  .sticky-top{position:sticky;top:0;z-index:9;background:white;box-shadow:0 2px 8px rgba(15,23,42,0.04);}
+  .progress-wrap{padding:12px 0 8px;}
+  .progress-bar{height:6px;background:#eef2f7;overflow:hidden;}
+  .progress-fill{height:100%;background:linear-gradient(90deg,var(--green),var(--green-dark));width:0%;transition:width 0.4s ease;}
+  .progress-text{padding:6px 20px 0;font-size:12px;color:var(--muted);font-weight:600;text-align:center;}
+  .tabs{display:flex;padding:0 8px;border-top:1px solid #f3f4f6;}
+  .tab{flex:1;padding:13px;border:none;background:none;font-size:14px;font-weight:600;color:var(--muted);cursor:pointer;border-bottom:3px solid transparent;transition:color 0.15s,border-color 0.15s;}
+  .tab.active{color:var(--navy);border-bottom-color:var(--accent);}
+
+  .view{display:none;padding:16px;}
+  .view.active{display:block;}
+
+  .route-list{display:flex;flex-direction:column;gap:12px;}
+  .package-card{background:white;border-radius:14px;padding:14px;display:flex;align-items:center;gap:12px;box-shadow:0 1px 3px rgba(15,23,42,0.06);cursor:pointer;transition:transform 0.1s;border-left:4px solid #d1d5db;}
+  .package-card:active{transform:scale(0.98);}
+  .package-card.issue{border-left-color:#f59e0b;background:#fffbeb;}
+  .package-card.pickup{border-left-color:var(--purple);}
+  .package-card.retry{border-left-color:#f59e0b;background:#fffbeb;}
+  .order-badge{width:36px;height:36px;border-radius:10px;background:#eff6ff;color:var(--navy);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:15px;flex-shrink:0;}
+  .package-card.issue .order-badge,.package-card.retry .order-badge{background:#fef3c7;color:#b45309;}
+  .package-card.pickup .order-badge{background:#ede9fe;color:var(--purple);}
+  .package-info{flex:1;min-width:0;}
+  .package-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;gap:8px;flex-wrap:wrap;}
+  .guide{font-size:12px;font-weight:700;color:var(--muted);letter-spacing:0.3px;}
+  .badges-wrap{display:flex;gap:4px;align-items:center;flex-wrap:wrap;}
+  .status-badge{font-size:10px;padding:3px 8px;border-radius:20px;font-weight:700;text-transform:uppercase;letter-spacing:0.3px;white-space:nowrap;}
+  .status-badge.pending{background:#f3f4f6;color:var(--muted);}
+  .status-badge.delivered{background:#dcfce7;color:var(--green-dark);}
+  .status-badge.issue{background:#fef3c7;color:#b45309;}
+  .status-badge.pickup-badge{background:#ede9fe;color:var(--purple);}
+  .status-badge.undone{background:#f3f4f6;color:#4b5563;}
+  .retry-badge{display:inline-block;background:#fef3c7;color:#b45309;font-size:9px;padding:2px 7px;border-radius:4px;font-weight:700;letter-spacing:0.3px;text-transform:uppercase;}
+  .client{font-size:15px;font-weight:600;color:var(--ink);margin-bottom:2px;}
+  .address{font-size:13px;color:var(--muted);line-height:1.3;}
+  .issue-count{font-size:11px;color:#b45309;font-weight:600;margin-top:4px;}
+  .chevron{font-size:24px;color:#d1d5db;}
+
+  .empty{text-align:center;padding:60px 20px;color:#9ca3af;font-size:14px;line-height:1.6;}
+  .empty-icon{font-size:44px;margin-bottom:14px;opacity:0.55;filter:grayscale(0.3);}
+  .empty-title{color:var(--ink);font-weight:700;font-size:15px;margin-bottom:6px;}
+  .empty.celebrate .empty-icon{opacity:1;filter:none;}
+
+  .overlay{position:fixed;inset:0;background:var(--bg);z-index:100;display:none;overflow-y:auto;}
+  .overlay.active{display:block;}
+
+  #eventOverlay { z-index: 220; }
+  #undoOverlay { z-index: 240; }
+
+  .detail-screen{min-height:100vh;display:flex;flex-direction:column;max-width:480px;margin:0 auto;}
+  .detail-header{background:linear-gradient(135deg,#0A1F44 0%,#0E3A6C 55%,#1E5BB8 100%);color:white;padding:16px 20px;display:flex;align-items:center;gap:14px;position:sticky;top:0;z-index:2;}
+  .back-btn{background:rgba(255,255,255,0.15);border:1px solid rgba(255,255,255,0.3);color:white;width:40px;height:40px;border-radius:12px;font-size:20px;cursor:pointer;flex-shrink:0;}
+  .detail-title{font-weight:700;font-size:16px;}
+  .detail-sub{font-size:12px;opacity:0.85;margin-top:2px;}
+  .detail-body{flex:1;padding:16px;}
+
+  .splash-screen{min-height:100vh;display:flex;flex-direction:column;justify-content:center;padding:32px 24px;background:linear-gradient(160deg,#0A1F44 0%,#0E3A6C 55%,#1E5BB8 100%);color:white;max-width:480px;margin:0 auto;}
+  .splash-brand{display:flex;align-items:center;gap:12px;margin-bottom:32px;}
+  .splash-brand .logo-mark{width:52px;height:52px;}
+  .splash-brand .wm-ruta{font-size:26px;}
+  .splash-brand .wm-x{font-size:30px;}
+  .splash-title{font-size:22px;font-weight:800;margin-bottom:6px;line-height:1.2;}
+  .splash-subtitle{font-size:14px;opacity:0.75;margin-bottom:28px;line-height:1.4;}
+  .messenger-options{display:flex;flex-direction:column;gap:10px;}
+  .messenger-option{background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.15);border-radius:14px;padding:14px;display:flex;align-items:center;gap:14px;cursor:pointer;color:white;text-align:left;transition:all 0.15s;width:100%;font-family:inherit;}
+  .messenger-option:active{transform:scale(0.98);background:rgba(255,255,255,0.15);}
+  .messenger-option-avatar{width:48px;height:48px;border-radius:50%;background:rgba(255,107,53,0.2);border:1.5px solid var(--accent);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:14px;flex-shrink:0;}
+  .messenger-option-info{flex:1;min-width:0;}
+  .messenger-option-name{font-weight:700;font-size:15px;}
+  .messenger-option-zone{font-size:12px;opacity:0.75;margin-top:2px;}
+  .messenger-option-arrow{font-size:22px;opacity:0.5;}
+
+  .info-card{background:white;border-radius:14px;padding:14px;margin-bottom:20px;box-shadow:0 1px 3px rgba(15,23,42,0.05);}
+  .info-row{display:flex;justify-content:space-between;padding:6px 0;font-size:13px;border-bottom:1px solid #f3f4f6;gap:12px;}
+  .info-row:last-child{border-bottom:none;}
+  .info-row .label{color:var(--muted);font-weight:500;flex-shrink:0;}
+  .info-row span:last-child{text-align:right;font-weight:600;color:var(--ink);}
+
+  .section-label{font-size:12px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:8px;margin-top:4px;display:flex;justify-content:space-between;align-items:baseline;}
+  .photo-count-label{font-size:11px;color:var(--navy);text-transform:none;letter-spacing:0;font-weight:700;}
+  .text-input{width:100%;border:1px solid #d1d5db;border-radius:12px;padding:12px 14px;font-family:inherit;font-size:15px;outline:none;background:white;margin-bottom:16px;}
+  .text-input:focus{border-color:var(--navy);}
+
+  .photo-area{background:white;border:2px dashed #d1d5db;border-radius:14px;aspect-ratio:4/3;display:flex;align-items:center;justify-content:center;cursor:pointer;overflow:hidden;margin-bottom:8px;transition:border-color 0.15s;position:relative;}
+  .photo-area:active{border-color:var(--accent);}
+  .photo-area.no-photo-mode{border-style:solid;border-color:#cbd5e1;background:#f8fafc;}
+  .photo-placeholder{text-align:center;color:#9ca3af;padding:20px;}
+  .camera-icon{font-size:42px;margin-bottom:8px;}
+  .photo-placeholder .hint{font-size:11px;margin-top:4px;color:#d1d5db;}
+  .photo-preview{width:100%;height:100%;object-fit:cover;}
+  .no-photo-mode-content{text-align:center;color:#64748b;padding:20px;}
+  .no-photo-mode-content .no-photo-icon{font-size:40px;margin-bottom:8px;opacity:0.5;}
+  .no-photo-mode-content .label{font-weight:700;font-size:14px;}
+  .no-photo-mode-content .hint{font-size:11px;margin-top:4px;}
+  .photo-pos-indicator{position:absolute;top:8px;right:8px;background:rgba(10,31,68,0.8);color:white;padding:3px 9px;border-radius:12px;font-size:11px;font-weight:700;}
+
+  .photo-thumbs{display:flex;gap:8px;overflow-x:auto;padding:4px 0 10px;margin-bottom:4px;-webkit-overflow-scrolling:touch;}
+  .photo-thumb{position:relative;width:70px;height:70px;flex-shrink:0;border-radius:10px;overflow:hidden;border:2px solid transparent;cursor:pointer;background:#f3f4f6;}
+  .photo-thumb.active{border-color:var(--accent);}
+  .photo-thumb img{width:100%;height:100%;object-fit:cover;display:block;}
+  .photo-thumb-remove{position:absolute;top:2px;right:2px;width:20px;height:20px;background:rgba(0,0,0,0.75);color:white;border:none;border-radius:50%;font-size:11px;cursor:pointer;display:flex;align-items:center;justify-content:center;font-family:inherit;line-height:1;padding:0;}
+
+  .add-photo-btn{background:white;border:1px dashed #cbd5e1;border-radius:10px;padding:11px;width:100%;font-size:13px;font-weight:600;color:var(--navy);cursor:pointer;margin-bottom:10px;display:flex;align-items:center;justify-content:center;gap:8px;font-family:inherit;transition:background 0.15s;}
+  .add-photo-btn:active{background:#f1f5f9;}
+
+  .no-photo-btn{background:#f8fafc;border:1px dashed #cbd5e1;border-radius:10px;padding:12px;width:100%;font-size:13px;font-weight:600;color:#64748b;cursor:pointer;margin-bottom:16px;display:flex;align-items:center;justify-content:center;gap:8px;transition:all 0.15s;font-family:inherit;}
+  .no-photo-btn.active{background:#f0f9ff;border-color:#3b82f6;color:#1e40af;border-style:solid;}
+
+  .signature-wrap{position:relative;background:linear-gradient(180deg,#f8fafc 0%,#ffffff 100%);border:1.5px solid #d1d5db;border-radius:14px;margin-bottom:10px;overflow:hidden;box-shadow:0 1px 3px rgba(15,23,42,0.05);}
+  .signature-wrap.signed{border-color:var(--green);background:#f0fdf4;}
+  .signature-canvas{display:block;width:100%;height:180px;touch-action:none;cursor:crosshair;position:relative;z-index:2;}
+  .signature-hint{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;color:#94a3b8;font-size:14px;font-weight:600;pointer-events:none;z-index:1;transition:opacity 0.25s;gap:4px;}
+  .signature-hint .hint-icon{font-size:28px;opacity:0.6;}
+  .signature-hint.hidden{opacity:0;}
+  .signature-baseline{position:absolute;left:20px;right:20px;bottom:40px;height:1px;background:#cbd5e1;pointer-events:none;z-index:1;}
+  .signature-actions{display:flex;gap:8px;margin-bottom:16px;}
+  .sig-btn{flex:1;padding:11px;border-radius:10px;border:1px solid var(--line);background:white;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;color:var(--ink);transition:background 0.15s,transform 0.1s;display:flex;align-items:center;justify-content:center;gap:6px;}
+  .sig-btn:active{transform:scale(0.97);background:#f3f4f6;}
+  .sig-btn.sig-reuse{background:#eff6ff;color:var(--navy);border-color:#bfdbfe;}
+  .sig-btn.sig-reuse:active{background:#dbeafe;}
+  .sig-btn:disabled{opacity:0.4;cursor:not-allowed;}
+
+  .color-picker{display:flex;gap:10px;flex-wrap:wrap;padding:4px 0;}
+  .color-chip{width:38px;height:38px;border-radius:50%;border:2px solid transparent;cursor:pointer;position:relative;transition:transform 0.15s;}
+  .color-chip:active{transform:scale(0.92);}
+  .color-chip.active{box-shadow:0 0 0 2px white,0 0 0 4px var(--ink);}
+  .color-chip.active::after{content:'✓';position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);font-weight:900;font-size:16px;color:rgba(0,0,0,0.55);text-shadow:0 0 3px rgba(255,255,255,0.8);}
+
+  .processing-overlay{position:fixed;inset:0;background:rgba(10,31,68,0.72);z-index:300;display:none;align-items:center;justify-content:center;}
+  .processing-overlay.active{display:flex;}
+  .processing-box{background:white;border-radius:18px;padding:28px 34px;text-align:center;box-shadow:0 20px 60px rgba(0,0,0,0.3);min-width:220px;}
+  .processing-spinner{width:42px;height:42px;border:4px solid #e5e7eb;border-top-color:var(--accent);border-radius:50%;margin:0 auto 16px;animation:spin 0.9s linear infinite;}
+  @keyframes spin{to{transform:rotate(360deg);}}
+  .processing-text{font-size:14px;font-weight:600;color:var(--ink);}
+
+  .gps-box{background:white;border-radius:14px;padding:14px;display:flex;align-items:center;gap:12px;margin-bottom:20px;box-shadow:0 1px 3px rgba(15,23,42,0.05);border-left:4px solid #d1d5db;}
+  .gps-box.ok{border-left-color:var(--green);}
+  .gps-box.error{border-left-color:#ef4444;}
+  .gps-icon{font-size:24px;}
+  .gps-text{font-size:13px;color:var(--muted);line-height:1.5;}
+  .gps-text strong{color:var(--ink);font-size:14px;}
+
+  .note-input{width:100%;border:1px solid #d1d5db;border-radius:12px;padding:12px;font-family:inherit;font-size:14px;resize:none;min-height:80px;outline:none;background:white;}
+  .note-input:focus{border-color:var(--navy);}
+
+  .detail-actions{padding:16px;display:grid;grid-template-columns:1fr 1.5fr;gap:10px;background:white;border-top:1px solid var(--line);position:sticky;bottom:0;}
+  .action-btn{padding:16px;border:none;border-radius:12px;font-size:14px;font-weight:700;cursor:pointer;transition:transform 0.1s;font-family:inherit;}
+  .action-btn:active{transform:scale(0.97);}
+  .action-btn.novedad{background:#fef3c7;color:#b45309;}
+  .action-btn.entregado{background:var(--green);color:white;box-shadow:0 2px 8px rgba(34,197,94,0.25);}
+  .action-btn.pickup{background:var(--purple);box-shadow:0 2px 8px rgba(139,92,246,0.25);}
+
+  .events-header{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:14px;}
+  .events-header h3{font-size:17px;color:var(--ink);}
+  .events-count{font-size:12px;color:var(--muted);font-weight:600;}
+  .event-card{background:white;border-radius:14px;padding:12px;margin-bottom:10px;display:flex;gap:12px;box-shadow:0 1px 3px rgba(15,23,42,0.05);cursor:pointer;transition:transform 0.1s;}
+  .event-card:active{transform:scale(0.99);}
+  .event-card.undone{opacity:0.72;}
+  .event-card.undone .event-address{color:#9ca3af;text-decoration:line-through;}
+  .event-photo{width:70px;height:70px;border-radius:10px;overflow:hidden;flex-shrink:0;background:#f3f4f6;display:flex;align-items:center;justify-content:center;position:relative;}
+  .event-photo img{width:100%;height:100%;object-fit:cover;}
+  .no-photo{font-size:10px;color:#9ca3af;text-align:center;padding:4px;}
+  .photo-count-badge{position:absolute;bottom:3px;right:3px;background:rgba(10,31,68,0.9);color:white;font-size:10px;font-weight:700;padding:2px 6px;border-radius:8px;}
+  .sig-badge{position:absolute;top:3px;left:3px;background:rgba(34,197,94,0.95);color:white;font-size:10px;padding:1px 5px;border-radius:6px;}
+  .event-info{flex:1;min-width:0;}
+  .event-top{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:4px;flex-wrap:wrap;}
+  .event-guide{font-size:12px;font-weight:700;color:var(--muted);}
+  .event-address{font-size:13px;color:#374151;margin-bottom:2px;}
+  .event-note{font-size:12px;color:var(--muted);font-style:italic;margin:4px 0;}
+  .event-meta{display:flex;flex-wrap:wrap;gap:8px;font-size:11px;color:#9ca3af;margin-top:4px;}
+
+  .event-detail-screen{min-height:100vh;display:flex;flex-direction:column;max-width:480px;margin:0 auto;background:var(--bg);}
+  .carousel-wrap{background:#0A1F44;}
+  .carousel-main{position:relative;display:flex;align-items:center;justify-content:center;max-height:340px;min-height:200px;overflow:hidden;}
+  .carousel-main img{max-width:100%;max-height:340px;object-fit:contain;display:block;}
+  .carousel-main .empty-photo{color:rgba(255,255,255,0.55);padding:60px 20px;font-size:13px;text-align:center;}
+  .car-nav{position:absolute;top:50%;transform:translateY(-50%);width:40px;height:40px;background:rgba(0,0,0,0.5);color:white;border:none;border-radius:50%;font-size:22px;cursor:pointer;display:flex;align-items:center;justify-content:center;font-family:inherit;}
+  .car-nav.prev{left:10px;}
+  .car-nav.next{right:10px;}
+  .car-counter{position:absolute;bottom:10px;right:10px;background:rgba(10,31,68,0.75);color:white;padding:3px 10px;border-radius:12px;font-size:11px;font-weight:700;}
+  .carousel-thumbs{display:flex;gap:6px;overflow-x:auto;padding:8px 12px;background:#0A1F44;}
+  .carousel-thumb{width:52px;height:52px;flex-shrink:0;object-fit:cover;border-radius:8px;cursor:pointer;border:2px solid transparent;}
+  .carousel-thumb.active{border-color:var(--accent);}
+
+  .event-detail-body{padding:16px;flex:1;}
+  .ev-block{background:white;border-radius:14px;padding:14px;margin-bottom:10px;box-shadow:0 1px 3px rgba(15,23,42,0.05);}
+  .ev-block .ev-label{font-size:11px;text-transform:uppercase;letter-spacing:0.6px;color:var(--muted);font-weight:700;margin-bottom:4px;}
+  .ev-block .ev-value{font-size:15px;font-weight:600;color:var(--ink);line-height:1.45;word-break:break-word;}
+  .ev-block.note .ev-value{font-weight:500;font-style:italic;color:#374151;}
+  .ev-block.undone-block{background:#fef2f2;border-left:4px solid #ef4444;}
+  .ev-block.undone-block .ev-label{color:#b91c1c;}
+  .ev-block.undone-block .ev-value{color:#7f1d1d;}
+  .ev-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px;}
+  .ev-grid .ev-block{margin-bottom:0;}
+  .ev-status-row{display:flex;align-items:center;justify-content:space-between;padding:14px;background:white;border-radius:14px;margin-bottom:10px;box-shadow:0 1px 3px rgba(15,23,42,0.05);}
+  .ev-status-row .status-badge{font-size:12px;padding:5px 12px;}
+  .ev-status-row .ev-time{font-size:13px;color:var(--muted);font-weight:600;}
+  .ev-signature-img{background:white;border-radius:14px;padding:10px;margin-bottom:10px;box-shadow:0 1px 3px rgba(15,23,42,0.05);}
+  .ev-signature-img .ev-label{font-size:11px;text-transform:uppercase;letter-spacing:0.6px;color:var(--muted);font-weight:700;margin-bottom:6px;padding:0 4px;}
+  .ev-signature-img img{max-width:100%;height:auto;display:block;max-height:100px;margin:0 auto;}
+
+  .undo-btn{width:100%;background:white;border:1.5px solid #ef4444;color:#dc2626;padding:14px;border-radius:14px;font-size:14px;font-weight:700;cursor:pointer;margin-top:12px;font-family:inherit;display:flex;align-items:center;justify-content:center;gap:8px;transition:background 0.15s,transform 0.1s;}
+  .undo-btn:active:not(.disabled){background:#fef2f2;transform:scale(0.98);}
+  .undo-btn.disabled{background:#f9fafb;border-color:#d1d5db;color:#9ca3af;cursor:not-allowed;font-size:12px;padding:12px;}
+
+  .undo-reason-list{display:flex;flex-direction:column;gap:8px;}
+  .undo-reason-option{background:#f9fafb;border:1.5px solid var(--line);border-radius:10px;padding:13px 14px;font-size:14px;font-weight:600;color:var(--ink);cursor:pointer;font-family:inherit;text-align:left;display:flex;align-items:center;gap:10px;transition:all 0.15s;width:100%;}
+  .undo-reason-option:active{transform:scale(0.99);}
+  .undo-reason-option.selected{background:#fef2f2;border-color:#ef4444;color:#b91c1c;}
+  .undo-reason-option.selected::after{content:'✓';margin-left:auto;font-weight:800;font-size:16px;color:#ef4444;}
+
+  .wa-actions-wrap{display:flex;flex-direction:column;gap:8px;margin-top:6px;}
+  .wa-share-btn{width:100%;background:var(--wa);color:white;border:none;border-radius:14px;padding:15px;font-size:14px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;box-shadow:0 2px 8px rgba(37,211,102,0.3);font-family:inherit;transition:transform 0.1s;}
+  .wa-share-btn:active{transform:scale(0.98);}
+  .wa-share-btn svg{width:20px;height:20px;fill:currentColor;}
+  .wa-share-btn.secondary{background:white;color:var(--wa);border:1.5px solid var(--wa);box-shadow:none;}
+
+  .settings-screen{min-height:100vh;display:flex;flex-direction:column;max-width:480px;margin:0 auto;background:var(--bg);}
+  .settings-body{flex:1;padding:16px;}
+  .settings-section{background:white;border-radius:14px;padding:16px;margin-bottom:14px;box-shadow:0 1px 3px rgba(15,23,42,0.05);}
+  .settings-section h3{font-size:15px;margin-bottom:6px;color:var(--ink);}
+  .settings-section > p{font-size:13px;color:var(--muted);line-height:1.5;margin-bottom:12px;}
+  .settings-btn{width:100%;padding:13px;border-radius:10px;border:none;font-size:14px;font-weight:600;cursor:pointer;transition:background 0.15s;margin-bottom:8px;font-family:inherit;}
+  .settings-btn:last-child{margin-bottom:0;}
+  .settings-btn.primary{background:var(--navy);color:white;}
+  .settings-btn.secondary{background:#f3f4f6;color:var(--ink);border:1px solid var(--line);}
+  .settings-btn.danger{background:#fef2f2;color:#dc2626;border:1px solid #fecaca;}
+  .csv-preview{background:#f9fafb;border:1px solid var(--line);border-radius:10px;padding:10px;margin-top:10px;max-height:220px;overflow-y:auto;font-size:12px;}
+  .csv-preview-item{padding:6px 0;border-bottom:1px solid var(--line);}
+  .csv-preview-item:last-child{border-bottom:none;}
+  .csv-preview-item .guide{font-weight:700;color:var(--muted);}
+  .csv-preview-item .addr{color:var(--ink);margin-top:2px;}
+  .csv-info-badge{display:inline-block;background:#eff6ff;color:var(--navy);padding:3px 8px;border-radius:6px;font-size:11px;font-weight:700;margin-bottom:10px;}
+  .app-version{text-align:center;font-size:11px;color:#9ca3af;padding:20px 0;}
+
+  .toggle-row{display:flex;justify-content:space-between;align-items:center;padding:14px 0;border-bottom:1px solid var(--line);gap:12px;}
+  .toggle-row:last-child{border-bottom:none;padding-bottom:0;}
+  .toggle-row:first-of-type{padding-top:8px;}
+  .toggle-label{flex:1;min-width:0;}
+  .toggle-label strong{display:block;font-size:14px;color:var(--ink);margin-bottom:2px;}
+  .toggle-label span{font-size:12px;color:var(--muted);line-height:1.4;}
+  .toggle-switch{position:relative;width:46px;height:28px;background:#d1d5db;border-radius:14px;cursor:pointer;transition:background 0.2s;flex-shrink:0;border:none;}
+  .toggle-switch.on{background:var(--green);}
+  .toggle-switch::after{content:'';position:absolute;top:3px;left:3px;width:22px;height:22px;background:white;border-radius:50%;transition:transform 0.2s;box-shadow:0 1px 3px rgba(0,0,0,0.2);}
+  .toggle-switch.on::after{transform:translateX(18px);}
+
+  .search-screen{min-height:100vh;display:flex;flex-direction:column;max-width:480px;margin:0 auto;background:var(--bg);}
+  .search-header{background:linear-gradient(135deg,#0A1F44 0%,#0E3A6C 55%,#1E5BB8 100%);padding:14px 16px;display:flex;gap:10px;align-items:center;position:sticky;top:0;z-index:2;}
+  .search-input-wrap{flex:1;background:white;border-radius:12px;padding:10px 14px;display:flex;align-items:center;gap:10px;box-shadow:0 2px 8px rgba(10,31,68,0.15);}
+  .search-input-icon{font-size:16px;opacity:0.5;}
+  .search-input-wrap input{flex:1;border:none;outline:none;font-size:15px;background:none;font-family:inherit;color:var(--ink);min-width:0;}
+  .search-clear{background:#e5e7eb;border:none;border-radius:50%;width:22px;height:22px;font-size:11px;color:#64748b;cursor:pointer;display:none;align-items:center;justify-content:center;flex-shrink:0;}
+  .search-clear.visible{display:flex;}
+  .search-cancel{background:none;border:none;color:white;font-size:14px;font-weight:600;cursor:pointer;padding:8px 4px;font-family:inherit;}
+  .search-results{flex:1;padding:16px;}
+  .sr-section-title{font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:0.6px;margin:4px 0 10px;padding-left:2px;}
+  .sr-section-title:not(:first-child){margin-top:22px;}
+  .sr-card{background:white;border-radius:14px;padding:12px;margin-bottom:10px;display:flex;gap:12px;box-shadow:0 1px 3px rgba(15,23,42,0.05);cursor:pointer;align-items:center;transition:transform 0.1s;}
+  .sr-card:active{transform:scale(0.99);}
+  .sr-photo{width:56px;height:56px;border-radius:10px;overflow:hidden;flex-shrink:0;background:#f3f4f6;display:flex;align-items:center;justify-content:center;font-size:22px;color:#9ca3af;position:relative;}
+  .sr-photo img{width:100%;height:100%;object-fit:cover;}
+  .sr-body{flex:1;min-width:0;}
+  .sr-top{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:4px;flex-wrap:wrap;}
+  .sr-guide{font-size:11px;font-weight:700;color:var(--muted);}
+  .sr-title{font-size:14px;font-weight:600;color:var(--ink);margin-bottom:2px;}
+  .sr-sub{font-size:12px;color:var(--muted);line-height:1.3;}
+  .sr-date{font-size:11px;color:#9ca3af;margin-top:3px;}
+
+  .whatsapp-overlay{position:fixed;inset:0;background:rgba(15,23,42,0.55);z-index:150;display:none;align-items:flex-end;justify-content:center;}
+  .whatsapp-overlay.active{display:flex;}
+  .whatsapp-sheet{background:white;border-radius:22px 22px 0 0;width:100%;max-width:480px;padding:26px 22px 32px;animation:slideUpSheet 0.28s ease-out;}
+  @keyframes slideUpSheet{from{transform:translateY(100%);}to{transform:translateY(0);}}
+  .wa-icon-circle{width:64px;height:64px;border-radius:50%;background:#dcfce7;display:flex;align-items:center;justify-content:center;margin:0 auto 14px;font-size:32px;}
+  .wa-sheet-title{text-align:center;font-size:18px;font-weight:700;color:var(--ink);margin-bottom:6px;}
+  .wa-sheet-sub{text-align:center;font-size:14px;color:var(--muted);line-height:1.5;margin-bottom:6px;}
+  .wa-sheet-client{text-align:center;font-weight:700;color:var(--ink);font-size:15px;margin-bottom:2px;}
+  .wa-sheet-phone{text-align:center;font-size:13px;color:var(--muted);margin-bottom:22px;}
+  .wa-sheet-actions-vertical{display:flex;flex-direction:column;gap:10px;}
+  .wa-action-primary{background:var(--wa);color:white;padding:16px;border-radius:12px;border:none;font-size:15px;font-weight:700;cursor:pointer;font-family:inherit;box-shadow:0 3px 10px rgba(37,211,102,0.3);display:flex;align-items:center;justify-content:center;gap:8px;}
+  .wa-action-primary:active{transform:scale(0.98);}
+  .wa-action-primary svg{width:20px;height:20px;fill:currentColor;}
+  .wa-action-secondary{background:white;color:var(--wa);border:1.5px solid var(--wa);padding:14px;border-radius:12px;font-size:14px;font-weight:600;cursor:pointer;font-family:inherit;display:flex;align-items:center;justify-content:center;gap:8px;}
+  .wa-action-secondary:active{background:#f0fdf4;}
+  .wa-action-link{background:none;border:none;color:var(--muted);font-size:14px;font-weight:600;cursor:pointer;padding:10px;font-family:inherit;}
+
+  .add-package-sheet{max-height:88vh;overflow-y:auto;}
+  .add-package-title{font-size:18px;font-weight:700;color:var(--ink);margin-bottom:4px;text-align:center;}
+  .add-package-sub{font-size:13px;color:var(--muted);text-align:center;margin-bottom:20px;}
+  .add-form-label{font-size:12px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px;display:block;margin-top:14px;}
+  .add-form-label:first-of-type{margin-top:0;}
+  .type-selector{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px;}
+  .type-option{background:#f8fafc;border:1.5px solid var(--line);border-radius:10px;padding:12px;font-size:13px;font-weight:600;color:var(--muted);cursor:pointer;font-family:inherit;transition:all 0.15s;}
+  .type-option.active{background:#eff6ff;border-color:var(--navy);color:var(--navy);}
+  .type-option.active.pickup-active{background:#f5f3ff;border-color:var(--purple);color:var(--purple);}
+  .add-text-input{width:100%;border:1px solid #d1d5db;border-radius:10px;padding:12px 14px;font-family:inherit;font-size:14px;outline:none;background:white;margin-bottom:10px;}
+  .add-text-input:focus{border-color:var(--navy);}
+  .add-form-actions{display:grid;grid-template-columns:1fr 1.5fr;gap:10px;margin-top:16px;}
+  .add-form-btn{padding:14px;border-radius:12px;border:none;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit;transition:transform 0.1s;}
+  .add-form-btn:active{transform:scale(0.97);}
+  .add-form-btn.cancel{background:#f3f4f6;color:var(--ink);border:1px solid var(--line);}
+  .add-form-btn.confirm{background:var(--accent);color:white;box-shadow:0 3px 10px rgba(255,107,53,0.35);}
+
+  .fab{position:fixed;bottom:24px;right:24px;width:58px;height:58px;border-radius:50%;background:var(--accent);color:white;border:none;font-size:30px;font-weight:300;line-height:1;cursor:pointer;box-shadow:0 4px 16px rgba(255,107,53,0.45);z-index:50;display:flex;align-items:center;justify-content:center;font-family:inherit;transition:transform 0.15s;padding-bottom:3px;}
+  .fab:active{transform:scale(0.94);}
+  @media (min-width: 480px){.fab{right:calc(50% - 240px + 20px);}}
+
+  .toast{position:fixed;bottom:100px;left:50%;transform:translateX(-50%) translateY(20px);background:var(--navy-deep);color:white;padding:12px 20px;border-radius:30px;font-size:13px;font-weight:600;opacity:0;transition:all 0.3s;pointer-events:none;z-index:200;max-width:90%;text-align:center;box-shadow:0 8px 20px rgba(10,31,68,0.3);}
+  .toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+
+  .pin-screen{min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px;background:linear-gradient(160deg,#0A1F44 0%,#0E3A6C 55%,#1E5BB8 100%);color:white;max-width:480px;margin:0 auto;position:relative;}
+  .pin-header{position:absolute;top:16px;left:16px;}
+  .pin-back{background:rgba(255,255,255,0.15);border:1px solid rgba(255,255,255,0.3);color:white;width:40px;height:40px;border-radius:12px;font-size:20px;cursor:pointer;}
+  .pin-avatar{width:78px;height:78px;border-radius:50%;background:rgba(255,107,53,0.2);border:2px solid #FF6B35;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:22px;margin-bottom:14px;}
+  .pin-name{font-size:19px;font-weight:800;text-align:center;}
+  .pin-zone{font-size:13px;opacity:0.75;margin-top:3px;margin-bottom:32px;}
+  .pin-title{font-size:15px;opacity:0.85;margin-bottom:22px;}
+  .pin-dots{display:flex;gap:16px;margin-bottom:22px;}
+  .pin-dots span{width:16px;height:16px;border-radius:50%;background:rgba(255,255,255,0.2);border:1.5px solid rgba(255,255,255,0.4);transition:all 0.15s;}
+  .pin-dots span.filled{background:#FF6B35;border-color:#FF6B35;transform:scale(1.1);}
+  .pin-error{min-height:20px;font-size:13px;font-weight:600;color:#fca5a5;margin-bottom:20px;text-align:center;}
+  .pin-pad{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;width:100%;max-width:300px;}
+  .pin-key{background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.18);border-radius:16px;color:white;font-size:24px;font-weight:600;padding:18px;cursor:pointer;font-family:inherit;transition:all 0.12s;}
+  .pin-key:active{transform:scale(0.94);background:rgba(255,255,255,0.22);}
+  .pin-key-empty{background:transparent;border:none;cursor:default;}
+  .pin-key-del{font-size:20px;}
+
+  .admin-screen{min-height:100vh;display:flex;flex-direction:column;max-width:480px;margin:0 auto;background:var(--bg);}
+  .admin-tabs{display:flex;background:white;border-bottom:1px solid var(--line);}
+  .admin-tab{flex:1;padding:14px;border:none;background:none;font-size:14px;font-weight:600;color:var(--muted);cursor:pointer;border-bottom:3px solid transparent;font-family:inherit;}
+  .admin-tab.active{color:var(--navy);border-bottom-color:var(--accent);}
+  .admin-view{display:none;padding:16px;flex:1;}
+  .admin-view.active{display:block;}
+  .ms-card{background:white;border-radius:14px;padding:14px;margin-bottom:10px;display:flex;align-items:center;gap:12px;box-shadow:0 1px 3px rgba(15,23,42,0.06);border-left:4px solid var(--green);transition:transform 0.1s;}
+  .ms-card.inactive{border-left-color:#d1d5db;background:#f9fafb;opacity:0.75;}
+  .ms-card:active{transform:scale(0.99);}
+  .ms-avatar{width:42px;height:42px;border-radius:50%;background:#eff6ff;color:var(--navy);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:13px;flex-shrink:0;}
+  .ms-card.inactive .ms-avatar{background:#f3f4f6;color:var(--muted);}
+  .ms-info{flex:1;min-width:0;}
+  .ms-name{font-size:15px;font-weight:700;color:var(--ink);margin-bottom:2px;}
+  .ms-zone{font-size:12px;color:var(--muted);}
+  .ms-pin{font-size:11px;color:#9ca3af;font-family:monospace;}
+  .ms-right{display:flex;align-items:center;gap:10px;flex-shrink:0;}
+  .ms-edit-btn{background:#f3f4f6;border:1px solid var(--line);color:var(--ink);padding:8px 12px;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;}
+  .ms-edit-btn:active{background:#e5e7eb;}
+  .admin-add-btn{width:100%;background:white;border:2px dashed #cbd5e1;border-radius:14px;padding:16px;font-size:14px;font-weight:700;color:var(--navy);cursor:pointer;margin-bottom:14px;font-family:inherit;transition:all 0.15s;}
+  .admin-add-btn:active{background:#f1f5f9;border-color:var(--navy);}
+  .live-header-bar{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;padding:0 2px;gap:10px;}
+  .live-date-label{font-size:14px;font-weight:700;color:var(--ink);}
+  .live-date-input{border:1px solid var(--line);border-radius:8px;padding:8px 10px;font-size:13px;font-family:inherit;background:white;color:var(--ink);cursor:pointer;outline:none;}
+  .live-refresh-btn{background:#eff6ff;color:var(--navy);border:none;border-radius:8px;padding:8px 12px;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;}
+  .live-refresh-btn:active{background:#dbeafe;}
+  .live-card{background:white;border-radius:14px;padding:14px;margin-bottom:10px;box-shadow:0 1px 3px rgba(15,23,42,0.06);cursor:pointer;transition:transform 0.1s;border-left:4px solid #d1d5db;}
+  .live-card:active{transform:scale(0.99);}
+  .live-card.st-fresh{border-left-color:var(--green);}
+  .live-card.st-paused{border-left-color:#f59e0b;}
+  .live-card.st-idle{border-left-color:#ef4444;}
+  .live-card-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;gap:8px;}
+  .live-name{font-size:15px;font-weight:700;color:var(--ink);}
+  .live-zone{font-size:12px;color:var(--muted);margin-top:1px;}
+  .live-status-dot{font-size:20px;flex-shrink:0;}
+  .live-progress-bar{height:8px;background:#eef2f7;border-radius:4px;overflow:hidden;margin-bottom:6px;}
+  .live-progress-fill{height:100%;background:linear-gradient(90deg,var(--green),var(--green-dark));transition:width 0.4s ease;}
+  .live-progress-text{font-size:12px;color:var(--muted);font-weight:600;margin-bottom:6px;}
+  .live-meta{display:flex;flex-wrap:wrap;gap:8px;font-size:11px;color:#9ca3af;}
+  .live-sig-count{color:var(--green-dark);font-weight:700;}
+  .admin-live-empty{text-align:center;padding:40px 20px;color:var(--muted);font-size:14px;}
+  .admin-drill-header{display:flex;align-items:center;gap:10px;margin-bottom:14px;}
+  .admin-drill-back{background:white;border:1px solid var(--line);color:var(--ink);width:36px;height:36px;border-radius:10px;font-size:16px;cursor:pointer;font-family:inherit;}
+  .admin-drill-title{font-size:15px;font-weight:700;color:var(--ink);}
+  .ae-card{background:white;border-radius:12px;padding:10px;margin-bottom:8px;display:flex;gap:10px;box-shadow:0 1px 2px rgba(15,23,42,0.05);cursor:pointer;align-items:center;transition:transform 0.1s;}
+  .ae-card:active{transform:scale(0.99);}
+  .ae-card.undone{opacity:0.72;}
+  .ae-photo{width:50px;height:50px;border-radius:8px;overflow:hidden;flex-shrink:0;background:#f3f4f6;display:flex;align-items:center;justify-content:center;font-size:18px;position:relative;}
+  .ae-photo img{width:100%;height:100%;object-fit:cover;}
+  .ae-badge-sig{position:absolute;top:2px;left:2px;background:rgba(34,197,94,0.95);color:white;font-size:9px;padding:1px 4px;border-radius:4px;}
+  .ae-body{flex:1;min-width:0;}
+  .ae-head{display:flex;justify-content:space-between;align-items:center;gap:6px;margin-bottom:2px;}
+  .ae-guide{font-size:11px;font-weight:700;color:var(--muted);}
+  .ae-client{font-size:13px;font-weight:700;color:var(--ink);margin-bottom:1px;}
+  .ae-addr{font-size:11px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .ae-time{font-size:10px;color:#9ca3af;margin-top:3px;}
+
+  .admin-desktop-overlay{position:fixed;inset:0;background:#0f172a;z-index:200;display:none;flex-direction:column;}
+  .admin-desktop-overlay.active{display:flex;}
+  .ad-topbar{height:64px;background:linear-gradient(90deg,#0A1F44 0%,#0E3A6C 50%,#1E5BB8 100%);display:flex;align-items:center;padding:0 28px;gap:24px;color:white;box-shadow:0 4px 16px rgba(0,0,0,0.3);flex-shrink:0;}
+  .ad-brand{font-size:20px;font-weight:800;letter-spacing:-0.3px;display:flex;align-items:center;gap:8px;}
+  .ad-brand .x{color:var(--accent);}
+  .ad-tabs{display:flex;gap:4px;flex:1;}
+  .ad-tab{background:rgba(255,255,255,0.08);border:none;color:rgba(255,255,255,0.75);padding:8px 18px;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;transition:all 0.15s;}
+  .ad-tab:hover{background:rgba(255,255,255,0.15);color:white;}
+  .ad-tab.active{background:var(--accent);color:white;}
+  .ad-topbar-actions{display:flex;gap:8px;}
+  .ad-action-btn{background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.15);color:white;padding:8px 14px;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;transition:background 0.15s;}
+  .ad-action-btn:hover{background:rgba(255,255,255,0.2);}
+  .ad-body{display:grid;grid-template-columns:280px 1fr;flex:1;overflow:hidden;}
+  .ad-sidebar{background:white;display:flex;flex-direction:column;overflow:hidden;border-right:1px solid var(--line);}
+  .ad-search{padding:14px;border-bottom:1px solid var(--line);}
+  .ad-search input{width:100%;border:1px solid var(--line);border-radius:8px;padding:10px 12px;font-size:13px;font-family:inherit;outline:none;background:#f9fafb;}
+  .ad-search input:focus{border-color:var(--navy);background:white;}
+  .ad-msg-list{flex:1;overflow-y:auto;padding:8px;}
+  .ad-msg-item{padding:10px 12px;border-radius:8px;cursor:pointer;display:flex;align-items:center;gap:10px;margin-bottom:4px;transition:background 0.1s;}
+  .ad-msg-item:hover{background:#f3f4f6;}
+  .ad-msg-item.active{background:#eff6ff;}
+  .ad-mini-avatar{width:32px;height:32px;border-radius:50%;background:#eff6ff;color:var(--navy);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:11px;flex-shrink:0;}
+  .ad-msg-item.inactive .ad-mini-avatar{background:#f3f4f6;color:var(--muted);}
+  .ad-mini-info{flex:1;min-width:0;}
+  .ad-mini-name{font-size:13px;font-weight:600;color:var(--ink);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .ad-msg-item.inactive .ad-mini-name{color:var(--muted);}
+  .ad-mini-zone{font-size:11px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .ad-dot{width:8px;height:8px;border-radius:50%;background:#d1d5db;flex-shrink:0;}
+  .ad-dot.on{background:var(--green);}
+  .ad-main{overflow-y:auto;padding:28px;background:#f4f6fa;}
+  .ad-detail-card{background:white;border-radius:14px;padding:24px;margin-bottom:16px;box-shadow:0 1px 3px rgba(15,23,42,0.06);}
+  .ad-detail-header{display:flex;align-items:flex-start;justify-content:space-between;gap:20px;margin-bottom:22px;flex-wrap:wrap;}
+  .ad-detail-name{font-size:24px;font-weight:800;color:var(--ink);margin-bottom:4px;letter-spacing:-0.4px;}
+  .ad-detail-meta{font-size:13px;color:var(--muted);}
+  .ad-detail-actions{display:flex;gap:8px;flex-wrap:wrap;}
+  .ad-btn{padding:10px 16px;border-radius:8px;border:none;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;transition:all 0.15s;display:inline-flex;align-items:center;gap:6px;}
+  .ad-btn:disabled{opacity:0.5;cursor:not-allowed;}
+  .ad-btn.primary{background:var(--navy);color:white;}
+  .ad-btn.primary:hover:not(:disabled){background:var(--navy-light);}
+  .ad-btn.accent{background:var(--accent);color:white;}
+  .ad-btn.accent:hover:not(:disabled){background:#e55a28;}
+  .ad-btn.secondary{background:#f3f4f6;color:var(--ink);border:1px solid var(--line);}
+  .ad-btn.secondary:hover:not(:disabled){background:#e5e7eb;}
+  .ad-btn.danger{background:#fef2f2;color:#dc2626;border:1px solid #fecaca;}
+  .ad-btn.danger:hover:not(:disabled){background:#fee2e2;}
+  .ad-stats-row{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:22px;}
+  .ad-stat{background:#f8fafc;border-radius:10px;padding:14px;}
+  .ad-stat-value{font-size:24px;font-weight:800;color:var(--ink);margin-bottom:2px;line-height:1;}
+  .ad-stat-label{font-size:11px;color:var(--muted);text-transform:uppercase;font-weight:700;letter-spacing:0.3px;}
+  .ad-section-title{font-size:13px;font-weight:800;text-transform:uppercase;letter-spacing:0.5px;color:var(--muted);margin-bottom:12px;display:flex;justify-content:space-between;align-items:baseline;}
+  .ad-table-wrap{background:white;border-radius:12px;overflow:hidden;box-shadow:0 1px 3px rgba(15,23,42,0.06);border:1px solid var(--line);}
+  .ad-table{width:100%;border-collapse:collapse;font-size:13px;}
+  .ad-table th{text-align:left;padding:12px 14px;background:#f8fafc;border-bottom:1px solid var(--line);font-size:11px;text-transform:uppercase;color:var(--muted);font-weight:700;letter-spacing:0.3px;}
+  .ad-table td{padding:10px 14px;border-bottom:1px solid #f3f4f6;color:var(--ink);vertical-align:middle;}
+  .ad-table tr:last-child td{border-bottom:none;}
+  .ad-table tr.ad-row-clickable{cursor:pointer;transition:background 0.1s;}
+  .ad-table tr.ad-row-clickable:hover td{background:#f0f9ff;}
+  .ad-empty{text-align:center;padding:60px 20px;color:var(--muted);font-size:14px;line-height:1.6;}
+  .ad-empty-icon{font-size:56px;margin-bottom:16px;opacity:0.4;}
+  .ad-live-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:16px;}
+  .ad-live-card{background:white;border-radius:14px;padding:18px;box-shadow:0 1px 3px rgba(15,23,42,0.06);border-left:4px solid #d1d5db;cursor:pointer;transition:transform 0.1s;}
+  .ad-live-card:hover{transform:translateY(-2px);box-shadow:0 4px 12px rgba(15,23,42,0.1);}
+  .ad-live-card.st-fresh{border-left-color:var(--green);}
+  .ad-live-card.st-paused{border-left-color:#f59e0b;}
+  .ad-live-card.st-idle{border-left-color:#ef4444;}
+  .ad-live-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;gap:8px;}
+  .ad-live-name{font-size:15px;font-weight:700;color:var(--ink);}
+  .ad-live-zone{font-size:12px;color:var(--muted);margin-top:1px;}
+  .ad-live-dot{font-size:18px;flex-shrink:0;}
+  .ad-live-progress{height:8px;background:#eef2f7;border-radius:4px;overflow:hidden;margin-bottom:8px;}
+  .ad-live-progress-fill{height:100%;background:linear-gradient(90deg,var(--green),var(--green-dark));transition:width 0.4s;}
+  .ad-live-text{font-size:12px;color:var(--muted);font-weight:600;margin-bottom:8px;}
+  .ad-live-meta{display:flex;flex-wrap:wrap;gap:10px;font-size:11px;color:#9ca3af;}
+  .ad-live-meta strong{color:var(--ink);font-weight:700;}
+  .ad-csv-modal{position:fixed;inset:0;background:rgba(15,23,42,0.6);z-index:250;display:none;align-items:center;justify-content:center;padding:20px;}
+  .ad-csv-modal.active{display:flex;}
+  .ad-csv-dialog{background:white;border-radius:16px;width:100%;max-width:680px;max-height:90vh;display:flex;flex-direction:column;overflow:hidden;box-shadow:0 20px 60px rgba(0,0,0,0.4);}
+  .ad-csv-header{padding:20px 24px;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;align-items:center;}
+  .ad-csv-title{font-size:18px;font-weight:800;color:var(--ink);}
+  .ad-csv-body{padding:20px 24px;overflow-y:auto;flex:1;}
+  .ad-csv-footer{padding:16px 24px;border-top:1px solid var(--line);display:flex;justify-content:flex-end;gap:10px;background:#f9fafb;}
+  .ad-csv-dropzone{border:2px dashed #cbd5e1;border-radius:12px;padding:36px 24px;text-align:center;cursor:pointer;transition:all 0.15s;background:#f9fafb;}
+  .ad-csv-dropzone:hover{border-color:var(--navy);background:#eff6ff;}
+  .ad-csv-preview{max-height:260px;overflow-y:auto;border:1px solid var(--line);border-radius:8px;background:#f9fafb;}
+  .ad-csv-preview-row{padding:10px 14px;border-bottom:1px solid var(--line);font-size:12px;}
+  .ad-csv-preview-row:last-child{border-bottom:none;}
+  .ad-csv-preview-row .g{font-weight:700;color:var(--navy);}
+  .ad-csv-preview-row .a{color:var(--muted);margin-top:2px;}
+  .ad-csv-mode{display:flex;gap:10px;}
+  .ad-csv-mode-option{flex:1;padding:14px;border:2px solid var(--line);border-radius:10px;cursor:pointer;background:white;text-align:left;font-family:inherit;transition:all 0.15s;}
+  .ad-csv-mode-option:hover{border-color:#cbd5e1;}
+  .ad-csv-mode-option.active{border-color:var(--navy);background:#eff6ff;}
+  .ad-csv-mode-option strong{display:block;font-size:13px;color:var(--ink);margin-bottom:2px;}
+  .ad-csv-mode-option span{font-size:12px;color:var(--muted);line-height:1.3;}
+
+  .ad-routes-toolbar{display:flex;gap:10px;align-items:center;margin-bottom:12px;}
+  .ad-routes-toolbar input{flex:1;border:1px solid var(--line);border-radius:8px;padding:10px 14px;font-size:13px;font-family:inherit;outline:none;background:white;}
+  .ad-routes-toolbar input:focus{border-color:var(--navy);}
+  .ad-routes-toolbar-count{font-size:12px;color:var(--muted);font-weight:600;white-space:nowrap;}
+  .ad-row-thumb{width:40px;height:40px;border-radius:6px;object-fit:cover;display:block;background:#f3f4f6;}
+  .ad-row-thumb-empty{width:40px;height:40px;border-radius:6px;background:#f3f4f6;display:flex;align-items:center;justify-content:center;font-size:16px;color:#9ca3af;}
+  .ad-row-action-badge{display:inline-block;margin-left:4px;font-size:10px;color:var(--navy);font-weight:700;}
+
+  @media (max-width: 900px){
+    .ad-body{grid-template-columns:1fr;}
+    .ad-sidebar{max-height:190px;border-right:none;border-bottom:1px solid var(--line);}
+    .ad-msg-list{display:flex;flex-direction:row;overflow-x:auto;overflow-y:hidden;padding:8px;}
+    .ad-msg-item{flex-shrink:0;min-width:150px;}
+    .ad-stats-row{grid-template-columns:repeat(2,1fr);}
+    .ad-csv-mode{flex-direction:column;}
+  }
+
+  @media (min-width: 1024px) {
+    #eventOverlay { overflow: hidden; }
+    #eventOverlay .event-detail-screen {
+      max-width: 100%; width: 100%; height: 100vh;
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 480px;
+      grid-template-rows: 68px 1fr;
+      grid-template-areas: "header header" "carousel body";
+      background: #0f172a;
+    }
+    #eventOverlay .detail-header { grid-area: header; padding: 0 28px; height: 68px; box-sizing: border-box; }
+    #eventOverlay .detail-header .detail-title { font-size: 18px; }
+    #eventOverlay .detail-header .detail-sub { font-size: 13px; }
+    #eventOverlay .back-btn { width: 42px; height: 42px; font-size: 22px; }
+    #eventOverlay .carousel-wrap { grid-area: carousel; display: flex; flex-direction: column; overflow: hidden; background: #0A1F44; border-right: 1px solid rgba(255,255,255,0.05); }
+    #eventOverlay .carousel-main { flex: 1; min-height: 0; max-height: none; display: flex; align-items: center; justify-content: center; padding: 24px; }
+    #eventOverlay .carousel-main img { max-width: 100%; max-height: 100%; width: auto; height: auto; object-fit: contain; border-radius: 8px; box-shadow: 0 20px 60px rgba(0,0,0,0.5); }
+    #eventOverlay .car-nav { width: 52px; height: 52px; font-size: 28px; }
+    #eventOverlay .car-counter { font-size: 13px; padding: 5px 14px; bottom: 16px; right: 16px; }
+    #eventOverlay .carousel-thumbs { padding: 12px 20px; gap: 10px; border-top: 1px solid rgba(255,255,255,0.08); justify-content: center; }
+    #eventOverlay .carousel-thumb { width: 68px; height: 68px; border-radius: 10px; }
+    #eventOverlay .event-detail-body { grid-area: body; overflow-y: auto; padding: 24px; background: var(--bg); }
+    #eventOverlay .event-detail-body::-webkit-scrollbar { width: 8px; }
+    #eventOverlay .event-detail-body::-webkit-scrollbar-track { background: #e5e7eb; }
+    #eventOverlay .event-detail-body::-webkit-scrollbar-thumb { background: #94a3b8; border-radius: 4px; }
+
+    #undoOverlay { align-items: center; }
+    #undoOverlay .whatsapp-sheet { max-width: 560px; border-radius: 16px; max-height: 85vh; }
+  }
+</style>
+<script src="api.js"></script>
+</head>
+<body>
+
+<div id="splashOverlay" class="overlay active">
+  <div class="splash-screen">
+    <div class="splash-brand">
+      <span class="logo-mark" aria-hidden="true">
+        <svg viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg">
+          <defs><linearGradient id="rxLogoGradS" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#1E5BB8"/><stop offset="1" stop-color="#0A1F44"/></linearGradient></defs>
+          <rect width="40" height="40" rx="12" fill="url(#rxLogoGradS)"/>
+          <path d="M13 13 L27 27 M27 13 L13 27" stroke="#ffffff" stroke-width="3" stroke-linecap="round"/>
+          <circle cx="13" cy="13" r="1.9" fill="#FF6B35"/><circle cx="27" cy="13" r="1.9" fill="#FF6B35"/>
+          <circle cx="13" cy="27" r="1.9" fill="#FF6B35"/><circle cx="27" cy="27" r="1.9" fill="#FF6B35"/>
+        </svg>
+      </span>
+      <span class="wordmark"><span class="wm-ruta">Ruta</span><span class="wm-x">X</span></span>
+    </div>
+    <div class="splash-title">Bienvenido a tu ruta</div>
+    <div class="splash-subtitle">Elige quién eres para empezar.</div>
+    <div class="messenger-options" id="messengerOptions"></div>
+    <div style="text-align:center;margin-top:32px;">
+      <button id="adminAccessBtn" style="background:none;border:none;color:rgba(255,255,255,0.5);font-size:12px;font-weight:600;cursor:pointer;padding:12px;font-family:inherit;text-decoration:underline;">Acceso administración</button>
+    </div>
+  </div>
+</div>
+
+<div id="app">
+  <header class="app-header">
+    <div class="brand-row">
+      <div class="brand">
+        <span class="logo-mark" aria-hidden="true">
+          <svg viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg">
+            <defs><linearGradient id="rxLogoGrad" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#1E5BB8"/><stop offset="1" stop-color="#0A1F44"/></linearGradient></defs>
+            <rect width="40" height="40" rx="12" fill="url(#rxLogoGrad)"/>
+            <path d="M13 13 L27 27 M27 13 L13 27" stroke="#ffffff" stroke-width="3" stroke-linecap="round"/>
+            <circle cx="13" cy="13" r="1.9" fill="#FF6B35"/><circle cx="27" cy="13" r="1.9" fill="#FF6B35"/>
+            <circle cx="13" cy="27" r="1.9" fill="#FF6B35"/><circle cx="27" cy="27" r="1.9" fill="#FF6B35"/>
+          </svg>
+        </span>
+        <span class="wordmark"><span class="wm-ruta">Ruta</span><span class="wm-x">X</span></span>
+      </div>
+      <button class="icon-btn" id="settingsBtn" title="Ajustes" aria-label="Ajustes">⚙</button>
+    </div>
+    <div class="messenger-bar">
+      <div class="avatar" id="avatar">—</div>
+      <div class="messenger-info">
+        <div class="messenger-name" id="messengerName">—</div>
+        <div class="messenger-code" id="messengerCode">—</div>
+      </div>
+    </div>
+    <div class="search-trigger" id="searchTrigger">
+      <span class="search-trigger-icon"><svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><circle cx="11" cy="11" r="7"/><path d="M20 20 L16.5 16.5"/></svg></span>
+      <span class="search-trigger-text">Buscar cliente, guía o fecha...</span>
+    </div>
+  </header>
+  <div class="sticky-top">
+    <div class="progress-wrap">
+      <div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div>
+      <div class="progress-text" id="progressText">0 de 0 entregados</div>
+    </div>
+    <nav class="tabs">
+      <button class="tab active" data-tab="ruta">📦 Ruta</button>
+      <button class="tab" data-tab="registro">📋 Registro</button>
+    </nav>
+  </div>
+  <main id="viewRuta" class="view active"><div id="routeList" class="route-list"></div></main>
+  <main id="viewRegistro" class="view"><div id="eventsTable"></div></main>
+  <button class="fab" id="addManualFab" title="Agregar a la ruta">+</button>
+</div>
+
+<div id="detailOverlay" class="overlay">
+  <div class="detail-screen">
+    <div class="detail-header">
+      <button class="back-btn" id="backBtn">←</button>
+      <div><div class="detail-title" id="detailTitle">Registrar evidencia</div><div class="detail-sub" id="detailGuide">Guía —</div></div>
+    </div>
+    <div class="detail-body">
+      <div class="info-card">
+        <div class="info-row"><span class="label">Cliente</span><span id="detailClient">—</span></div>
+        <div class="info-row"><span class="label">Dirección</span><span id="detailAddress">—</span></div>
+        <div class="info-row"><span class="label">Teléfono</span><span id="detailPhone">—</span></div>
+      </div>
+      <div id="recipientFieldWrap" class="hidden">
+        <div class="section-label">Nombre de quien recibe</div>
+        <input type="text" id="recipientInput" class="text-input" placeholder="Ej: María Fernández" autocomplete="off" />
+      </div>
+      <div class="section-label"><span>Fotografías de evidencia</span><span class="photo-count-label hidden" id="photoCountLabel"></span></div>
+      <div class="photo-area" id="photoArea">
+        <div class="photo-placeholder" id="photoPlaceholder"><div class="camera-icon">📷</div><div>Toca para tomar foto</div><div class="hint">Paquete entregado + fachada</div></div>
+        <div class="no-photo-mode-content hidden" id="noPhotoModeContent"><div class="no-photo-icon">🚫📷</div><div class="label">Entrega sin foto</div><div class="hint">No se adjuntará imagen</div></div>
+        <img id="photoPreview" class="photo-preview hidden" alt="evidencia" />
+        <div class="photo-pos-indicator hidden" id="photoPosIndicator"></div>
+        <input type="file" accept="image/*" capture="environment" id="photoInput" class="hidden" />
+      </div>
+      <div class="photo-thumbs hidden" id="photoThumbs"></div>
+      <button class="add-photo-btn hidden" id="addPhotoBtn">➕ Agregar otra foto</button>
+      <button class="no-photo-btn hidden" id="noPhotoBtn">📷 Marcar entrega sin foto</button>
+      <div id="signatureSection" class="hidden">
+        <div class="section-label"><span>Firma de quien recibe</span></div>
+        <div class="signature-wrap" id="signatureWrap">
+          <div class="signature-hint" id="signatureHint"><div class="hint-icon">✍️</div><div>Firme aquí con el dedo</div></div>
+          <div class="signature-baseline"></div>
+          <canvas id="signatureCanvas" class="signature-canvas"></canvas>
+        </div>
+        <div class="signature-actions">
+          <button class="sig-btn sig-clear" id="sigClearBtn">🗑️ Limpiar</button>
+          <button class="sig-btn sig-reuse hidden" id="sigReuseBtn">↺ Usar firma anterior</button>
+        </div>
+      </div>
+      <div class="section-label">Ubicación GPS</div>
+      <div class="gps-box" id="gpsBox"><div class="gps-icon">📍</div><div class="gps-text" id="gpsText">Buscando ubicación...</div></div>
+      <div class="section-label">Nota (opcional)</div>
+      <textarea id="noteInput" class="note-input" placeholder="Ej: entregado a la señora..."></textarea>
+    </div>
+    <div class="detail-actions">
+      <button class="action-btn novedad" id="btnNovedad">⚠️ Novedad</button>
+      <button class="action-btn entregado" id="btnEntregado">✓ Entregado</button>
+    </div>
+  </div>
+</div>
+
+<div id="eventOverlay" class="overlay">
+  <div class="event-detail-screen">
+    <div class="detail-header">
+      <button class="back-btn" id="eventBackBtn">←</button>
+      <div><div class="detail-title">Detalle del registro</div><div class="detail-sub" id="eventDetailGuide">Guía —</div></div>
+    </div>
+    <div class="carousel-wrap" id="eventCarouselWrap"></div>
+    <div class="event-detail-body" id="eventDetailBody"></div>
+  </div>
+</div>
+
+<div id="searchOverlay" class="overlay">
+  <div class="search-screen">
+    <div class="search-header">
+      <div class="search-input-wrap">
+        <span class="search-input-icon">🔍</span>
+        <input id="searchInput" type="text" placeholder="Cliente, guía, fecha, recibió..." autocomplete="off" />
+        <button class="search-clear" id="searchClearBtn">✕</button>
+      </div>
+      <button class="search-cancel" id="searchCancelBtn">Cancelar</button>
+    </div>
+    <div class="search-results" id="searchResults"></div>
+  </div>
+</div>
+
+<div id="settingsOverlay" class="overlay">
+  <div class="settings-screen">
+    <div class="detail-header">
+      <button class="back-btn" id="settingsBackBtn">←</button>
+      <div><div class="detail-title">Ajustes</div><div class="detail-sub">Configuración de Ruta X</div></div>
+    </div>
+    <div class="settings-body">
+      <div class="settings-section">
+        <h3>🎯 Preferencias de captura</h3>
+        <div class="toggle-row">
+          <div class="toggle-label"><strong>Pedir nombre de quien recibe</strong><span>Se pide al marcar Entregado</span></div>
+          <button class="toggle-switch" id="toggleRecipient" role="switch"></button>
+        </div>
+        <div class="toggle-row">
+          <div class="toggle-label"><strong>Permitir entregas sin foto</strong><span>Muestra la opción "Sin foto"</span></div>
+          <button class="toggle-switch" id="toggleNoPhoto" role="switch"></button>
+        </div>
+        <div class="toggle-row">
+          <div class="toggle-label"><strong>Preguntar WhatsApp al entregar</strong><span>Ofrece avisar al cliente con la evidencia</span></div>
+          <button class="toggle-switch" id="toggleWhatsApp" role="switch"></button>
+        </div>
+      </div>
+      <div class="settings-section">
+        <h3>✍️ Firma del cliente</h3>
+        <div class="toggle-row">
+          <div class="toggle-label"><strong>Pedir firma al entregar</strong><span>Se graba como marca de agua en las fotos</span></div>
+          <button class="toggle-switch on" id="toggleSignature" role="switch"></button>
+        </div>
+        <div id="signatureColorWrap">
+          <div style="margin-top:16px;margin-bottom:10px;font-size:13px;font-weight:700;color:var(--ink);">Color de la firma</div>
+          <div class="color-picker" id="colorPicker">
+            <button class="color-chip" data-color="#a3e635" style="background:#a3e635;" title="Lima"></button>
+            <button class="color-chip" data-color="#22d3ee" style="background:#22d3ee;" title="Cian"></button>
+            <button class="color-chip" data-color="#fb923c" style="background:#fb923c;" title="Naranja"></button>
+            <button class="color-chip" data-color="#f472b6" style="background:#f472b6;" title="Rosa"></button>
+            <button class="color-chip" data-color="#ffffff" style="background:#ffffff;border:1px solid #d1d5db;" title="Blanco"></button>
+          </div>
+        </div>
+      </div>
+      <div class="settings-section">
+        <h3>📁 Cargar ruta desde archivo</h3>
+        <p>Sube un CSV para agregar destinos al final de tu ruta.</p>
+        <span class="csv-info-badge">Formato: guia, cliente, direccion, telefono, tipo</span>
+        <button class="settings-btn primary" id="csvSelectBtn">Seleccionar archivo CSV</button>
+        <input type="file" id="csvInput" accept=".csv,text/csv,text/plain" class="hidden" />
+        <div id="csvPreviewBox" class="hidden">
+          <div class="csv-preview" id="csvPreview"></div>
+          <div style="display:flex;gap:8px;margin-top:10px;">
+            <button class="settings-btn secondary" id="csvCancelBtn" style="flex:1;margin-bottom:0;">Cancelar</button>
+            <button class="settings-btn primary" id="csvConfirmBtn" style="flex:1;margin-bottom:0;">Agregar a mi ruta</button>
+          </div>
+        </div>
+      </div>
+      <div class="settings-section">
+        <h3>👤 Cuenta</h3>
+        <p id="settingsAccountText">Estás como: —</p>
+        <button class="settings-btn secondary" id="changeMessengerBtn">Cambiar de mensajero</button>
+      </div>
+      <div class="settings-section">
+        <h3>🗑️ Reiniciar mi ruta</h3>
+        <p>Borra tus registros. Solo afecta a tu usuario.</p>
+        <button class="settings-btn danger" id="resetRouteBtn">Reiniciar mis datos</button>
+      </div>
+      <div class="app-version">Ruta X · v0.15 · Anulación de entrega</div>
+    </div>
+  </div>
+</div>
+
+<div id="whatsappOverlay" class="whatsapp-overlay">
+  <div class="whatsapp-sheet">
+    <div class="wa-icon-circle">💬</div>
+    <div class="wa-sheet-title">Entrega registrada</div>
+    <div class="wa-sheet-sub" id="waSheetSub">¿Avisar al cliente por WhatsApp?</div>
+    <div class="wa-sheet-client" id="waClientName">—</div>
+    <div class="wa-sheet-phone" id="waClientPhone">—</div>
+    <div class="wa-sheet-actions-vertical">
+      <button class="wa-action-primary" id="waDirectBtn">
+        <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z"/></svg>
+        <span id="waDirectBtnLabel">Enviar mensaje al cliente</span>
+      </button>
+      <button class="wa-action-secondary hidden" id="waSharePhotoBtn">📷 Compartir con foto</button>
+      <button class="wa-action-link" id="waSkipBtn">Ahora no</button>
+    </div>
+  </div>
+</div>
+
+<div id="addPackageOverlay" class="whatsapp-overlay">
+  <div class="whatsapp-sheet add-package-sheet">
+    <div class="add-package-title">Agregar a la ruta</div>
+    <div class="add-package-sub">Registra un nuevo destino</div>
+    <label class="add-form-label">Tipo</label>
+    <div class="type-selector">
+      <button class="type-option active" id="typeDelivery" data-type="delivery">📦 Entrega</button>
+      <button class="type-option" id="typePickup" data-type="pickup">📤 Recogida</button>
+    </div>
+    <label class="add-form-label">Cliente *</label>
+    <input type="text" id="addClient" class="add-text-input" placeholder="Nombre del cliente" autocomplete="off" />
+    <label class="add-form-label">Dirección *</label>
+    <input type="text" id="addAddress" class="add-text-input" placeholder="Dirección de la visita" autocomplete="off" />
+    <label class="add-form-label">Teléfono (opcional)</label>
+    <input type="tel" id="addPhone" class="add-text-input" placeholder="Ej: 310 555 0101" autocomplete="off" />
+    <label class="add-form-label">Guía (opcional)</label>
+    <input type="text" id="addGuide" class="add-text-input" placeholder="Número de guía" autocomplete="off" />
+    <label class="add-form-label">Nota (opcional)</label>
+    <input type="text" id="addNote" class="add-text-input" placeholder="Ej: recoger sobre firmado" autocomplete="off" />
+    <div class="add-form-actions">
+      <button class="add-form-btn cancel" id="addCancelBtn">Cancelar</button>
+      <button class="add-form-btn confirm" id="addConfirmBtn">Agregar</button>
+    </div>
+  </div>
+</div>
+
+<div id="undoOverlay" class="whatsapp-overlay">
+  <div class="whatsapp-sheet" style="max-height:92vh;overflow-y:auto;">
+    <div style="text-align:center;margin-bottom:16px;">
+      <div style="width:64px;height:64px;border-radius:50%;background:#fef2f2;display:flex;align-items:center;justify-content:center;margin:0 auto 14px;font-size:32px;">↺</div>
+      <div style="font-size:18px;font-weight:700;color:var(--ink);margin-bottom:6px;">Anular entrega</div>
+      <div style="font-size:13px;color:var(--muted);line-height:1.5;">El paquete volverá a tu ruta con estado <strong style="color:#b45309;">🔁 Reintentar</strong>.</div>
+    </div>
+    <div style="background:#f8fafc;border-radius:10px;padding:12px;margin-bottom:16px;">
+      <div style="font-size:11px;color:var(--muted);text-transform:uppercase;font-weight:700;margin-bottom:4px;">Paquete</div>
+      <div id="undoPackageName" style="font-size:14px;font-weight:700;color:var(--ink);">—</div>
+      <div id="undoPackageGuide" style="font-size:12px;color:var(--muted);margin-top:2px;">—</div>
+    </div>
+    <label class="add-form-label" style="margin-top:0;">Motivo de la anulación *</label>
+    <div class="undo-reason-list" id="undoReasonList">
+      <button class="undo-reason-option" data-reason="Me equivoqué de paquete"><span>📦</span> Me equivoqué de paquete</button>
+      <button class="undo-reason-option" data-reason="Me equivoqué de dirección"><span>🏠</span> Me equivoqué de dirección</button>
+      <button class="undo-reason-option" data-reason="El cliente no estaba"><span>🚪</span> El cliente no estaba / no recibió</button>
+      <button class="undo-reason-option" data-reason="El cliente rechazó el paquete"><span>✋</span> El cliente rechazó el paquete</button>
+      <button class="undo-reason-option" data-reason="Otro motivo"><span>💬</span> Otro motivo</button>
+    </div>
+    <div id="undoCustomWrap" class="hidden" style="margin-top:10px;">
+      <input type="text" id="undoCustomReason" class="add-text-input" placeholder="Describe el motivo..." autocomplete="off" maxlength="200" />
+    </div>
+    <div style="background:#fffbeb;border:1px solid #fef3c7;border-radius:10px;padding:12px;margin-top:16px;font-size:12px;color:#92400e;line-height:1.5;">
+      <strong>⚠ Importante:</strong> Si ya enviaste el WhatsApp al cliente, seguirá viendo el mensaje anterior. La anulación solo aplica al sistema interno.
+    </div>
+    <div class="add-form-actions" style="margin-top:16px;">
+      <button class="add-form-btn cancel" id="undoCancelBtn">Cancelar</button>
+      <button class="add-form-btn confirm" id="undoConfirmBtn" style="background:#ef4444;">Anular entrega</button>
+    </div>
+  </div>
+</div>
+
+<div id="processingOverlay" class="processing-overlay">
+  <div class="processing-box">
+    <div class="processing-spinner"></div>
+    <div class="processing-text" id="processingText">Aplicando firma...</div>
+  </div>
+</div>
+
+<div id="adminOverlay" class="overlay">
+  <div class="admin-screen">
+    <div class="detail-header">
+      <button class="back-btn" id="adminBackBtn">←</button>
+      <div style="flex:1;"><div class="detail-title">Administración</div><div class="detail-sub" id="adminSubtitle">—</div></div>
+      <button id="adminDesktopBtn" style="background:rgba(255,255,255,0.15);border:1px solid rgba(255,255,255,0.3);color:white;padding:8px 12px;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;margin-right:6px;">💻 Escritorio</button>
+      <button id="adminLogoutBtn" style="background:rgba(255,255,255,0.15);border:1px solid rgba(255,255,255,0.3);color:white;padding:8px 12px;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;">Salir</button>
+    </div>
+    <div class="admin-tabs">
+      <button class="admin-tab active" data-atab="mensajeros">👥 Mensajeros</button>
+      <button class="admin-tab" data-atab="vivo">📊 En vivo</button>
+    </div>
+    <div id="adminMensajerosView" class="admin-view active"></div>
+    <div id="adminVivoView" class="admin-view"></div>
+  </div>
+</div>
+
+<div id="editMessengerOverlay" class="whatsapp-overlay">
+  <div class="whatsapp-sheet add-package-sheet">
+    <div class="add-package-title" id="editMessengerTitle">Editar mensajero</div>
+    <div class="add-package-sub" id="editMessengerSub">—</div>
+    <label class="add-form-label">Código</label>
+    <input type="text" id="editMsCode" class="add-text-input" disabled style="background:#f3f4f6;color:#6b7280;" />
+    <label class="add-form-label">Nombre *</label>
+    <input type="text" id="editMsName" class="add-text-input" placeholder="Ej: Juan Pérez" autocomplete="off" />
+    <label class="add-form-label">Zona</label>
+    <input type="text" id="editMsZone" class="add-text-input" placeholder="Ej: Ruta Sur" autocomplete="off" />
+    <label class="add-form-label">PIN (4 dígitos)</label>
+    <input type="tel" id="editMsPin" class="add-text-input" placeholder="1234" maxlength="4" inputmode="numeric" autocomplete="off" />
+    <div class="add-form-actions">
+      <button class="add-form-btn cancel" id="editMsCancelBtn">Cancelar</button>
+      <button class="add-form-btn confirm" id="editMsConfirmBtn">Guardar</button>
+    </div>
+  </div>
+</div>
+
+<div id="adminDesktopOverlay" class="admin-desktop-overlay">
+  <div class="ad-topbar">
+    <div class="ad-brand"><span style="color:var(--accent);">◈</span> Ruta X <span class="x">Admin</span></div>
+    <nav class="ad-tabs">
+      <button class="ad-tab active" data-dtab="mensajeros">👥 Mensajeros</button>
+      <button class="ad-tab" data-dtab="vivo">📊 En vivo</button>
+    </nav>
+    <div class="ad-topbar-actions">
+      <button class="ad-action-btn" id="desktopBackMobile">📱 Volver a móvil</button>
+      <button class="ad-action-btn" id="desktopLogoutBtn">Salir</button>
+    </div>
+  </div>
+  <div class="ad-body">
+    <aside class="ad-sidebar">
+      <div class="ad-search"><input type="text" id="adSearchInput" placeholder="Buscar mensajero..." autocomplete="off" /></div>
+      <div class="ad-msg-list" id="adMsgList"></div>
+    </aside>
+    <main class="ad-main" id="adMain"></main>
+  </div>
+</div>
+
+<div id="adCsvModal" class="ad-csv-modal">
+  <div class="ad-csv-dialog">
+    <div class="ad-csv-header">
+      <div><div class="ad-csv-title" id="adCsvTitle">Asignar ruta CSV</div><div style="font-size:12px;color:var(--muted);margin-top:2px;" id="adCsvSubtitle">—</div></div>
+      <button id="adCsvCloseBtn" style="background:none;border:none;font-size:22px;cursor:pointer;color:var(--muted);padding:4px 8px;font-family:inherit;">✕</button>
+    </div>
+    <div class="ad-csv-body">
+      <div id="adCsvStep1">
+        <div class="ad-csv-dropzone" id="adCsvDropzone">
+          <div style="font-size:48px;margin-bottom:12px;">📁</div>
+          <div style="font-weight:700;color:var(--ink);margin-bottom:4px;font-size:15px;">Haz clic para elegir un archivo CSV</div>
+          <div style="font-size:12px;color:var(--muted);">Formato: guia, cliente, direccion, telefono, tipo</div>
+        </div>
+        <input type="file" id="adCsvFileInput" accept=".csv,text/csv,text/plain" style="display:none" />
+      </div>
+      <div id="adCsvStep2" class="hidden">
+        <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:10px;">
+          <div style="font-weight:700;color:var(--ink);" id="adCsvCount"></div>
+          <button class="ad-btn secondary" id="adCsvChangeFile" style="padding:6px 12px;font-size:12px;">Cambiar archivo</button>
+        </div>
+        <div class="ad-csv-preview" id="adCsvPreview"></div>
+        <div style="font-weight:700;margin:18px 0 10px;color:var(--ink);">¿Qué hacer con la ruta actual?</div>
+        <div class="ad-csv-mode">
+          <button class="ad-csv-mode-option active" data-mode="append">
+            <strong>➕ Agregar al final</strong><span>Los nuevos ítems se suman después</span>
+          </button>
+          <button class="ad-csv-mode-option" data-mode="replace">
+            <strong>🔄 Reemplazar pendientes</strong><span>Borra pendientes y pone estos</span>
+          </button>
+        </div>
+      </div>
+    </div>
+    <div class="ad-csv-footer">
+      <button class="ad-btn secondary" id="adCsvCancelBtn">Cancelar</button>
+      <button class="ad-btn accent hidden" id="adCsvConfirmBtn">Asignar ruta</button>
+    </div>
+  </div>
+</div>
+
+<div id="pinOverlay" class="overlay">
+  <div class="pin-screen">
+    <div class="pin-header"><button class="pin-back" id="pinBackBtn" aria-label="Volver">←</button></div>
+    <div class="pin-avatar" id="pinAvatar">M01</div>
+    <div class="pin-name" id="pinName">Mensajero</div>
+    <div class="pin-zone" id="pinZone">—</div>
+    <div class="pin-title">Ingresa tu PIN</div>
+    <div class="pin-dots" id="pinDots"><span></span><span></span><span></span><span></span></div>
+    <div class="pin-error" id="pinError"></div>
+    <div class="pin-pad" id="pinPad"></div>
+  </div>
+</div>
+
+<div id="toast" class="toast"></div>
+
+<script>
+(function () {
+  'use strict';
+
+  var CURRENT_KEY = 'rutax_current_v10';
+  function dataKey(code, type) { return 'rutax_' + code + '_' + type + '_v10'; }
+  var DEFAULT_SETTINGS = { requireRecipient: false, allowNoPhoto: false, promptWhatsApp: true, requireSignature: true, signatureColor: '#a3e635' };
+
+  var state = { messenger: null, route: [], events: [], settings: Object.assign({}, DEFAULT_SETTINGS) };
+  var currentPackage = null, currentPhotos = [], currentPhotoIndex = 0, currentNoPhoto = false;
+  var currentGPS = null, gpsWatchId = null, toastTimer = null, pendingCSVItems = null;
+  var pendingWhatsAppEvent = null, searchDebounceTimer = null, addFormType = 'delivery';
+  var pinTarget = { code: null, name: null, zone: null }, pinBuffer = '';
+  var signatureCanvas = null, signatureCtx = null, signatureDpr = 1;
+  var signatureLogicalW = 0, signatureLogicalH = 0;
+  var hasSignatureStrokes = false, isDrawing = false, signatureLastX = 0, signatureLastY = 0;
+  var adminState = { messengers: [], live: [], liveSince: null, liveUntil: null, drillDown: null, editingCode: null };
+  var desktopAdminState = {
+    activeTab: 'mensajeros', messengers: [], selectedCode: null, selectedRoutes: [],
+    live: [], liveSince: null, liveUntil: null, filter: '', routesFilter: '',
+    csvTarget: null, csvItems: null, csvMode: 'append'
+  };
+  var undoState = { evt: null, reason: null };
+
+  var MAX_EVENTS_WITH_LOCAL_PHOTOS = 8;
+  var UNDO_WINDOW_MS = 60 * 60 * 1000;
+
+  function isDesktopViewport() {
+    try { return window.matchMedia('(min-width: 1024px)').matches; }
+    catch (e) { return window.innerWidth >= 1024; }
+  }
+  function isAdminSession() {
+    return state.messenger && state.messenger.code === 'ADMIN';
+  }
+
+  function saveMessengerData() {
+    if (!state.messenger) return;
+    try {
+      localStorage.setItem(dataKey(state.messenger.code, 'route'), JSON.stringify(state.route));
+      localStorage.setItem(dataKey(state.messenger.code, 'events'), JSON.stringify(state.events));
+      localStorage.setItem(dataKey(state.messenger.code, 'settings'), JSON.stringify(state.settings));
+    } catch (e) {
+      try {
+        state.events.forEach(function (ev) { if (ev.localPhotos) delete ev.localPhotos; });
+        localStorage.setItem(dataKey(state.messenger.code, 'route'), JSON.stringify(state.route));
+        localStorage.setItem(dataKey(state.messenger.code, 'events'), JSON.stringify(state.events));
+        localStorage.setItem(dataKey(state.messenger.code, 'settings'), JSON.stringify(state.settings));
+        showToast('⚠ Espacio liberado', 2800);
+      } catch (e2) { showToast('⚠ Almacenamiento lleno.', 2400); }
+    }
+  }
+
+  function safeParse(str, fb) { try { return JSON.parse(str); } catch (e) { return fb; } }
+
+  function pruneLocalPhotos() {
+    var withLocal = [];
+    for (var i = state.events.length - 1; i >= 0; i--) {
+      if (state.events[i].localPhotos && state.events[i].localPhotos.length) withLocal.push(i);
+    }
+    for (var j = MAX_EVENTS_WITH_LOCAL_PHOTOS; j < withLocal.length; j++) {
+      delete state.events[withLocal[j]].localPhotos;
+    }
+  }
+
+  function mergeLocalPhotos(serverEvents) {
+    if (!serverEvents || !serverEvents.length) return serverEvents || [];
+    var key = state.messenger ? dataKey(state.messenger.code, 'events') : null;
+    if (!key) return serverEvents;
+    var localEvents = safeParse(localStorage.getItem(key), []);
+    if (!localEvents || !localEvents.length) return serverEvents;
+    var localMap = {};
+    localEvents.forEach(function (e) { if (e.localPhotos && e.localPhotos.length) localMap[e.id] = e.localPhotos; });
+    return serverEvents.map(function (e) {
+      if (localMap[e.id]) e.localPhotos = localMap[e.id];
+      return e;
+    });
+  }
+
+  function showToast(msg, duration) {
+    duration = duration || 2400;
+    var t = document.getElementById('toast');
+    t.textContent = msg; t.classList.add('show');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(function () { t.classList.remove('show'); }, duration);
+  }
+
+  function formatTime(ts) {
+    var d = new Date(ts);
+    var m = ['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];
+    return String(d.getDate()).padStart(2,'0') + ' ' + m[d.getMonth()] + ' · ' +
+      String(d.getHours()).padStart(2,'0') + ':' + String(d.getMinutes()).padStart(2,'0');
+  }
+  function formatFullDate(ts) {
+    var d = new Date(ts);
+    var ds = ['Domingo','Lunes','Martes','Miércoles','Jueves','Viernes','Sábado'];
+    var ms = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
+    return ds[d.getDay()] + ' ' + d.getDate() + ' de ' + ms[d.getMonth()] + ' · ' +
+      String(d.getHours()).padStart(2,'0') + ':' + String(d.getMinutes()).padStart(2,'0');
+  }
+  function formatShortDateTime(ts) {
+    var d = new Date(ts);
+    var m = ['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];
+    return d.getDate() + ' ' + m[d.getMonth()] + ' · ' +
+      String(d.getHours()).padStart(2,'0') + ':' + String(d.getMinutes()).padStart(2,'0');
+  }
+  function formatDateInput(ts) {
+    var d = new Date(ts);
+    return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+  }
+  function normalizeQuery(s) { return (s||'').toString().toLowerCase().trim().normalize('NFD').replace(/[\u0300-\u036f]/g,''); }
+
+  function compressImage(file, maxW, q) {
+    maxW = maxW || 640; q = q || 0.5;
+    return new Promise(function (resolve, reject) {
+      var img = new Image();
+      var url = URL.createObjectURL(file);
+      img.onload = function () {
+        URL.revokeObjectURL(url);
+        var c = document.createElement('canvas');
+        var w = img.width, h = img.height;
+        if (w > maxW) { h = Math.round(h * maxW / w); w = maxW; }
+        c.width = w; c.height = h;
+        c.getContext('2d').drawImage(img, 0, 0, w, h);
+        resolve(c.toDataURL('image/jpeg', q));
+      };
+      img.onerror = reject;
+      img.src = url;
+    });
+  }
+
+  function getEventPhotos(evt) {
+    if (evt.photos && evt.photos.length) return evt.photos;
+    if (evt.photo) return [evt.photo];
+    return [];
+  }
+  function getEventPhotosForShare(evt) {
+    if (evt.localPhotos && evt.localPhotos.length) return evt.localPhotos;
+    return getEventPhotos(evt);
+  }
+  function getSignatureColorHex() { return state.settings.signatureColor || '#a3e635'; }
+
+  function setupSignatureCanvas() {
+    var canvas = document.getElementById('signatureCanvas');
+    var wrap = document.getElementById('signatureWrap');
+    if (!canvas) return;
+    signatureCanvas = canvas;
+    signatureDpr = window.devicePixelRatio || 1;
+    var r = canvas.getBoundingClientRect();
+    if (r.width === 0) return;
+    signatureLogicalW = r.width; signatureLogicalH = r.height;
+    canvas.width = Math.round(r.width * signatureDpr);
+    canvas.height = Math.round(r.height * signatureDpr);
+    canvas.style.width = r.width + 'px'; canvas.style.height = r.height + 'px';
+    signatureCtx = canvas.getContext('2d');
+    signatureCtx.scale(signatureDpr, signatureDpr);
+    signatureCtx.lineWidth = 2.5; signatureCtx.lineCap = 'round'; signatureCtx.lineJoin = 'round';
+    signatureCtx.strokeStyle = getSignatureColorHex();
+    hasSignatureStrokes = false; isDrawing = false;
+    wrap.classList.remove('signed');
+    document.getElementById('signatureHint').classList.remove('hidden');
+  }
+  function getCanvasPos(e) {
+    var r = signatureCanvas.getBoundingClientRect();
+    return { x: e.clientX - r.left, y: e.clientY - r.top };
+  }
+  function onSigStart(e) {
+    if (!signatureCtx) return;
+    e.preventDefault();
+    try { signatureCanvas.setPointerCapture(e.pointerId); } catch (err) {}
+    isDrawing = true;
+    var p = getCanvasPos(e);
+    signatureLastX = p.x; signatureLastY = p.y;
+    signatureCtx.beginPath();
+    signatureCtx.arc(p.x, p.y, 1.2, 0, Math.PI * 2);
+    signatureCtx.fillStyle = signatureCtx.strokeStyle;
+    signatureCtx.fill();
+    if (!hasSignatureStrokes) {
+      hasSignatureStrokes = true;
+      document.getElementById('signatureHint').classList.add('hidden');
+      document.getElementById('signatureWrap').classList.add('signed');
+    }
+  }
+  function onSigMove(e) {
+    if (!isDrawing || !signatureCtx) return;
+    e.preventDefault();
+    var p = getCanvasPos(e);
+    signatureCtx.beginPath();
+    signatureCtx.moveTo(signatureLastX, signatureLastY);
+    signatureCtx.lineTo(p.x, p.y);
+    signatureCtx.stroke();
+    signatureLastX = p.x; signatureLastY = p.y;
+  }
+  function onSigEnd(e) {
+    isDrawing = false;
+    try { signatureCanvas.releasePointerCapture(e.pointerId); } catch (err) {}
+  }
+  function clearSignature() {
+    if (!signatureCtx || !signatureCanvas) return;
+    signatureCtx.clearRect(0, 0, signatureLogicalW, signatureLogicalH);
+    hasSignatureStrokes = false;
+    document.getElementById('signatureHint').classList.remove('hidden');
+    document.getElementById('signatureWrap').classList.remove('signed');
+  }
+
+  function truncateText(ctx, text, maxW) {
+    if (ctx.measureText(text).width <= maxW) return text;
+    var t = text;
+    while (t.length && ctx.measureText(t + '…').width > maxW) t = t.slice(0, -1);
+    return t + '…';
+  }
+
+  function generateWatermark(photoDataURL, sigURL, recipientName, ts, color) {
+    return new Promise(function (resolve) {
+      var img = new Image();
+      img.onload = function () {
+        var W = img.width, H = img.height;
+        var c = document.createElement('canvas');
+        c.width = W; c.height = H;
+        var ctx = c.getContext('2d');
+        ctx.drawImage(img, 0, 0, W, H);
+        var bandH = Math.max(90, Math.min(140, Math.round(H * 0.19)));
+        var bandY = H - bandH;
+        var grad = ctx.createLinearGradient(0, bandY, 0, H);
+        grad.addColorStop(0, 'rgba(10,31,68,0.6)');
+        grad.addColorStop(0.5, 'rgba(10,31,68,0.85)');
+        grad.addColorStop(1, 'rgba(10,31,68,0.95)');
+        ctx.fillStyle = grad; ctx.fillRect(0, bandY, W, bandH);
+        ctx.fillStyle = '#FF6B35';
+        ctx.fillRect(0, bandY, W, Math.max(2, Math.round(H * 0.004)));
+        var sigW = Math.round(W * 0.28);
+        var sigH = Math.round(bandH * 0.74);
+        var sigX = Math.round(W * 0.03);
+        var sigY = bandY + Math.round((bandH - sigH) / 2);
+        var finish = function () {
+          var textX = sigX + sigW + Math.round(W * 0.03);
+          var textMaxW = W - textX - Math.round(W * 0.15);
+          var ff = '-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif';
+          var rSize = Math.max(14, Math.round(W * 0.030));
+          ctx.font = '700 ' + rSize + 'px ' + ff;
+          ctx.fillStyle = '#fff'; ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
+          ctx.fillText(truncateText(ctx, 'Recibido por: ' + (recipientName || 'Cliente'), textMaxW), textX, bandY + bandH * 0.40);
+          var dSize = Math.max(11, Math.round(W * 0.022));
+          ctx.font = '500 ' + dSize + 'px ' + ff;
+          ctx.fillStyle = 'rgba(255,255,255,0.78)';
+          ctx.fillText(formatShortDateTime(ts), textX, bandY + bandH * 0.72);
+          var lSize = Math.max(12, Math.round(W * 0.022));
+          var lY = bandY + bandH * 0.55;
+          var rp = Math.round(W * 0.03);
+          ctx.textAlign = 'right'; ctx.textBaseline = 'middle';
+          ctx.font = '800 ' + Math.round(lSize * 1.15) + 'px ' + ff;
+          ctx.fillStyle = '#FF6B35'; ctx.fillText('X', W - rp, lY);
+          var xw = ctx.measureText('X').width;
+          ctx.font = '600 ' + lSize + 'px ' + ff;
+          ctx.fillStyle = 'rgba(255,255,255,0.85)';
+          ctx.fillText('Ruta', W - rp - xw - 2, lY);
+          resolve(c.toDataURL('image/jpeg', 0.75));
+        };
+        if (sigURL) {
+          var si = new Image();
+          si.onload = function () {
+            var ar = si.width / si.height;
+            var dW = sigW, dH = dW / ar;
+            if (dH > sigH) { dH = sigH; dW = dH * ar; }
+            ctx.drawImage(si, sigX + (sigW - dW)/2, sigY + (sigH - dH)/2, dW, dH);
+            finish();
+          };
+          si.onerror = finish;
+          si.src = sigURL;
+        } else finish();
+      };
+      img.onerror = function () { resolve(photoDataURL); };
+      img.src = photoDataURL;
+    });
+  }
+
+  function showProcessing(t) {
+    var el = document.getElementById('processingText');
+    if (el) el.textContent = t || 'Procesando...';
+    document.getElementById('processingOverlay').classList.add('active');
+  }
+  function hideProcessing() { document.getElementById('processingOverlay').classList.remove('active'); }
+
+  function normalizePhone(p) {
+    if (!p) return '';
+    p = String(p).replace(/[^\d]/g, '');
+    if (!p) return '';
+    if (p.indexOf('57') === 0 && p.length >= 12) return p;
+    if (p.length === 10) return '57' + p;
+    return p;
+  }
+
+  function buildWhatsAppMessage(evt) {
+    var msg = 'Hola ' + (evt.client || 'cliente') + ', le confirmamos la entrega de su paquete ';
+    msg += (evt.guide || '') + ' el ' + formatFullDate(evt.timestamp) + '.';
+    if (evt.recipient) msg += '\nRecibido por: ' + evt.recipient + '.';
+    var photosForShare = getEventPhotosForShare(evt);
+    var hasLocal = photosForShare.some(function (x) { return x && x.indexOf('data:') === 0; });
+    if (hasLocal) {
+      msg += '\n\nAdjuntamos la evidencia fotográfica firmada de la entrega.';
+    } else {
+      var ph = getEventPhotos(evt).filter(function (p) { return p && p.indexOf('http') === 0; });
+      if (ph.length) { msg += '\n\nEvidencia:'; ph.forEach(function (u) { msg += '\n' + u; }); }
+      else { msg += '\n\nAdjuntamos la evidencia firmada.'; }
+    }
+    msg += '\n— Ruta X';
+    return msg;
+  }
+  function dataURLtoBlob(dataURL) {
+    var arr = dataURL.split(',');
+    var mime = arr[0].match(/:(.*?);/)[1];
+    var bstr = atob(arr[1]);
+    var n = bstr.length;
+    var u8 = new Uint8Array(n);
+    while (n--) u8[n] = bstr.charCodeAt(n);
+    return new Blob([u8], { type: mime });
+  }
+  function sendWhatsAppDirect(evt) {
+    var p = normalizePhone(evt.phone || '');
+    if (!p) { showToast('⚠ Sin teléfono'); return; }
+    window.open('https://wa.me/' + p + '?text=' + encodeURIComponent(buildWhatsAppMessage(evt)), '_blank');
+  }
+  function shareWhatsAppWithPhotos(evt) {
+    var ph = getEventPhotosForShare(evt);
+    var p = normalizePhone(evt.phone || '');
+    var hasLocal = ph.some(function (x) { return x && x.indexOf('data:') === 0; });
+    if (!hasLocal) {
+      if (p) sendWhatsAppDirect(evt);
+      else showToast('Las fotos ya están en Drive');
+      return;
+    }
+    var msg = buildWhatsAppMessage(evt);
+    if (!ph.length || !navigator.share) { if (p) sendWhatsAppDirect(evt); else showToast('No se puede compartir'); return; }
+    var files = [];
+    for (var i = 0; i < ph.length && i < 5; i++) {
+      try { files.push(new File([dataURLtoBlob(ph[i])], 'e-' + i + '.jpg', { type: 'image/jpeg' })); } catch (e) {}
+    }
+    if (!files.length) { if (p) sendWhatsAppDirect(evt); return; }
+    navigator.share({ files: files, text: msg, title: 'Confirmación' }).catch(function (e) {
+      if (e && e.name === 'AbortError') return;
+      if (p) sendWhatsAppDirect(evt);
+    });
+  }
+  function showWhatsAppPrompt(evt) {
+    pendingWhatsAppEvent = evt;
+    var ph = getEventPhotosForShare(evt);
+    var p = normalizePhone(evt.phone || '');
+    document.getElementById('waClientName').textContent = evt.client || 'el cliente';
+    document.getElementById('waClientPhone').textContent = p ? '📱 +' + p : '(sin teléfono)';
+    var db = document.getElementById('waDirectBtn');
+    var dl = document.getElementById('waDirectBtnLabel');
+    var pb = document.getElementById('waSharePhotoBtn');
+    var sl = document.getElementById('waSheetSub');
+    if (p) {
+      db.classList.remove('hidden'); dl.textContent = 'Enviar mensaje';
+      if (ph.length) { pb.classList.remove('hidden'); sl.textContent = 'Elige cómo avisar'; }
+      else { pb.classList.add('hidden'); sl.textContent = 'Enviar mensaje directo'; }
+    } else if (ph.length) {
+      db.classList.remove('hidden'); dl.textContent = 'Compartir con foto';
+      pb.classList.add('hidden'); sl.textContent = 'Sin teléfono: comparte manual';
+    } else {
+      db.classList.add('hidden'); pb.classList.add('hidden'); sl.textContent = 'Sin teléfono ni foto';
+    }
+    document.getElementById('whatsappOverlay').classList.add('active');
+  }
+  function closeWhatsAppPrompt() {
+    document.getElementById('whatsappOverlay').classList.remove('active');
+    pendingWhatsAppEvent = null;
+  }
+
+  function renderSplash() {
+    document.getElementById('messengerOptions').innerHTML = '<div style="text-align:center;padding:22px;color:#fff;opacity:.75;font-size:14px;">Sin conexión al servidor</div>';
+  }
+  function renderSplashFromAPI(messengers) {
+    var box = document.getElementById('messengerOptions');
+    if (!messengers || !messengers.length) {
+      box.innerHTML = '<div style="text-align:center;padding:22px;color:#fff;opacity:.75;font-size:14px;">No hay mensajeros activos.</div>';
+      return;
+    }
+    var html = '';
+    for (var i = 0; i < messengers.length; i++) {
+      var m = messengers[i];
+      html += '<button class="messenger-option" data-code="' + m.code + '" data-name="' + m.name + '" data-zone="' + m.zone + '">' +
+        '<span class="messenger-option-avatar">' + m.code + '</span>' +
+        '<span class="messenger-option-info"><div class="messenger-option-name">' + m.name + '</div><div class="messenger-option-zone">' + (m.zone||'Sin zona') + '</div></span>' +
+        '<span class="messenger-option-arrow">›</span></button>';
+    }
+    box.innerHTML = html;
+    attachSplashHandlers(box);
+  }
+  function attachSplashHandlers(box) {
+    box.querySelectorAll('.messenger-option').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        openPinModal(btn.getAttribute('data-code'), btn.getAttribute('data-name'), btn.getAttribute('data-zone'));
+      });
+    });
+  }
+  function showSplash() {
+    ['detailOverlay','eventOverlay','settingsOverlay','searchOverlay','whatsappOverlay','addPackageOverlay','adminOverlay','adminDesktopOverlay','undoOverlay'].forEach(function (id) {
+      document.getElementById(id).classList.remove('active');
+    });
+    document.getElementById('splashOverlay').classList.add('active');
+  }
+  function hideSplash() { document.getElementById('splashOverlay').classList.remove('active'); }
+
+  function renderHeader() {
+    if (!state.messenger) return;
+    document.getElementById('messengerName').textContent = state.messenger.name;
+    document.getElementById('avatar').textContent = state.messenger.code;
+    document.getElementById('messengerCode').textContent = 'Código: ' + state.messenger.code + ' · ' + state.messenger.zone;
+  }
+
+  function renderRoute() {
+    var list = document.getElementById('routeList');
+    var visible = state.route.filter(function (p) { return p.status !== 'delivered'; });
+    if (!state.route.length) {
+      list.innerHTML = '<div class="empty"><div class="empty-icon">📦</div><div class="empty-title">No hay paquetes</div><div>Toca ➕ para agregar uno.</div></div>';
+    } else if (!visible.length) {
+      list.innerHTML = '<div class="empty celebrate"><div class="empty-icon">🎉</div><div class="empty-title">¡Todo entregado!</div><div>Revisa la pestaña Registro.</div></div>';
+    } else {
+      var html = '';
+      for (var i = 0; i < visible.length; i++) {
+        var p = visible[i];
+        var issues = state.events.filter(function (e) { return e.packageId === p.id && e.status === 'issue'; }).length;
+        var isPickup = p.type === 'pickup';
+        var isRetry = p.retry && p.status === 'pending';
+        var label = p.status === 'issue' ? 'Novedad' : (isRetry ? 'Reintentar' : (isPickup ? 'Recogida' : 'Pendiente'));
+        var icon = p.status === 'issue' ? '⚠' : (isRetry ? '🔁' : (isPickup ? '📤' : '○'));
+        var cardClass = (isRetry ? 'retry' : p.status) + (isPickup ? ' pickup' : '');
+        var retryBadge = isRetry ? '<span class="retry-badge">🔁 Reintentar</span>' : '';
+        html += '<div class="package-card ' + cardClass + '" data-id="' + p.id + '">' +
+          '<div class="order-badge">' + p.order + '</div>' +
+          '<div class="package-info"><div class="package-top"><span class="guide">' + (p.guide || (isPickup ? 'RECOGIDA' : '—')) + '</span>' +
+          '<div class="badges-wrap">' + retryBadge + (isPickup ? '<span class="status-badge pickup-badge">📤</span>' : '') +
+          '<span class="status-badge ' + p.status + '">' + icon + ' ' + label + '</span></div></div>' +
+          '<div class="client">' + p.client + '</div><div class="address">' + p.address + '</div>' +
+          (issues > 0 ? '<div class="issue-count">⚠ ' + issues + ' novedad previa</div>' : '') + '</div><div class="chevron">›</div></div>';
+      }
+      list.innerHTML = html;
+      list.querySelectorAll('.package-card').forEach(function (card) {
+        card.addEventListener('click', function () {
+          var pkg = state.route.find(function (x) { return x.id === card.getAttribute('data-id'); });
+          if (pkg) openDetail(pkg);
+        });
+      });
+    }
+    var done = state.route.filter(function (p) { return p.status === 'delivered'; }).length;
+    document.getElementById('progressText').textContent = done + ' de ' + state.route.length + ' entregados';
+    document.getElementById('progressFill').style.width = ((done / (state.route.length || 1)) * 100) + '%';
+  }
+
+  function renderEvents() {
+    var box = document.getElementById('eventsTable');
+    if (!state.events.length) {
+      box.innerHTML = '<div class="empty"><div class="empty-icon">📋</div><div class="empty-title">Sin registros</div><div>Comienza a entregar para ver tu historial.</div></div>';
+      return;
+    }
+    var sorted = state.events.slice().sort(function (a, b) { return b.timestamp - a.timestamp; });
+    var html = '<div class="events-header"><h3>Registro de entregas</h3><span class="events-count">' + state.events.length + ' evento' + (state.events.length > 1 ? 's' : '') + '</span></div>';
+    sorted.forEach(function (e) {
+      var ph = getEventPhotos(e);
+      var sigBadge = (e.signature || e.signed) ? '<span class="sig-badge">✍️</span>' : '';
+      var photoCell = ph[0]
+        ? '<img src="' + ph[0] + '" />' + (ph.length > 1 ? '<span class="photo-count-badge">+' + (ph.length - 1) + '</span>' : '') + sigBadge
+        : '<div class="no-photo">' + (e.status === 'undone' ? 'Anulada' : 'Sin foto') + '</div>' + sigBadge;
+
+      var st, stCls;
+      if (e.status === 'delivered') { st = '✓ Entregado'; stCls = 'delivered'; }
+      else if (e.status === 'undone') { st = '↺ Anulada'; stCls = 'undone'; }
+      else { st = '⚠ Novedad'; stCls = 'issue'; }
+
+      var extraClass = e.status === 'undone' ? ' undone' : '';
+
+      html += '<div class="event-card' + extraClass + '" data-id="' + e.id + '">' +
+        '<div class="event-photo">' + photoCell + '</div>' +
+        '<div class="event-info"><div class="event-top"><span class="event-guide">' + e.guide + '</span>' +
+        '<span class="status-badge ' + stCls + '">' + st + '</span></div>' +
+        '<div class="event-address">' + e.address + '</div>' +
+        (e.recipient ? '<div class="event-note">Recibió: ' + e.recipient + '</div>' : '') +
+        (e.status === 'undone' && e.undoReason ? '<div class="event-note" style="color:#b91c1c;">↺ ' + e.undoReason + '</div>' : '') +
+        (e.status !== 'undone' && e.note ? '<div class="event-note">"' + e.note + '"</div>' : '') +
+        '<div class="event-meta"><span>🕒 ' + formatTime(e.timestamp) + '</span></div></div></div>';
+    });
+    box.innerHTML = html;
+    box.querySelectorAll('.event-card').forEach(function (card) {
+      card.addEventListener('click', function () {
+        var evt = state.events.find(function (x) { return x.id === card.getAttribute('data-id'); });
+        if (evt) openEventDetail(evt);
+      });
+    });
+  }
+
+  function updateEvidenceFormUI() {
+    document.getElementById('recipientFieldWrap').classList.toggle('hidden', !state.settings.requireRecipient);
+    document.getElementById('signatureSection').classList.toggle('hidden', !state.settings.requireSignature);
+    var nb = document.getElementById('noPhotoBtn');
+    if (state.settings.allowNoPhoto && !currentPhotos.length && !currentNoPhoto) { nb.classList.remove('hidden','active'); nb.innerHTML = '📷 Marcar sin foto'; }
+    else if (state.settings.allowNoPhoto && currentNoPhoto) { nb.classList.remove('hidden'); nb.classList.add('active'); nb.innerHTML = '✓ Sin foto · toca para quitar'; }
+    else nb.classList.add('hidden');
+    var area = document.getElementById('photoArea');
+    area.classList.toggle('no-photo-mode', currentNoPhoto);
+    var ph = document.getElementById('photoPlaceholder'), np = document.getElementById('noPhotoModeContent');
+    var pv = document.getElementById('photoPreview'), pi = document.getElementById('photoPosIndicator');
+    if (currentPhotos.length) {
+      pv.classList.remove('hidden'); pv.src = currentPhotos[currentPhotoIndex];
+      ph.classList.add('hidden'); np.classList.add('hidden');
+      if (currentPhotos.length > 1) { pi.classList.remove('hidden'); pi.textContent = (currentPhotoIndex+1) + '/' + currentPhotos.length; }
+      else pi.classList.add('hidden');
+    } else if (currentNoPhoto) {
+      pv.classList.add('hidden'); ph.classList.add('hidden'); np.classList.remove('hidden'); pi.classList.add('hidden');
+    } else {
+      pv.classList.add('hidden'); ph.classList.remove('hidden'); np.classList.add('hidden'); pi.classList.add('hidden');
+    }
+    var th = document.getElementById('photoThumbs');
+    if (currentPhotos.length > 1) {
+      th.classList.remove('hidden');
+      th.innerHTML = currentPhotos.map(function (p, i) {
+        return '<div class="photo-thumb' + (i === currentPhotoIndex ? ' active' : '') + '" data-i="' + i + '">' +
+          '<img src="' + p + '" /><button class="photo-thumb-remove" data-remove="' + i + '">✕</button></div>';
+      }).join('');
+      th.querySelectorAll('.photo-thumb').forEach(function (t) {
+        t.addEventListener('click', function (e) {
+          if (e.target.classList.contains('photo-thumb-remove')) return;
+          currentPhotoIndex = parseInt(t.getAttribute('data-i'), 10);
+          updateEvidenceFormUI();
+        });
+      });
+      th.querySelectorAll('.photo-thumb-remove').forEach(function (r) {
+        r.addEventListener('click', function (e) { e.stopPropagation(); removePhotoAt(parseInt(r.getAttribute('data-remove'), 10)); });
+      });
+    } else { th.classList.add('hidden'); th.innerHTML = ''; }
+    var ab = document.getElementById('addPhotoBtn');
+    if (currentPhotos.length) { ab.classList.remove('hidden'); ab.textContent = '➕ Agregar otra foto' + (currentPhotos.length > 1 ? ' (' + currentPhotos.length + ')' : ''); }
+    else ab.classList.add('hidden');
+    var cl = document.getElementById('photoCountLabel');
+    if (currentPhotos.length) { cl.classList.remove('hidden'); cl.textContent = currentPhotos.length + ' foto' + (currentPhotos.length > 1 ? 's' : ''); }
+    else cl.classList.add('hidden');
+  }
+
+  function addPhotoToCurrent(d) { currentPhotos.push(d); currentPhotoIndex = currentPhotos.length - 1; currentNoPhoto = false; updateEvidenceFormUI(); }
+  function removePhotoAt(i) {
+    if (i < 0 || i >= currentPhotos.length) return;
+    currentPhotos.splice(i, 1);
+    if (currentPhotoIndex >= currentPhotos.length) currentPhotoIndex = Math.max(0, currentPhotos.length - 1);
+    updateEvidenceFormUI();
+    showToast('Foto eliminada', 1400);
+  }
+
+  function openDetail(pkg) {
+    currentPackage = pkg; currentPhotos = []; currentPhotoIndex = 0; currentNoPhoto = false; currentGPS = null; hasSignatureStrokes = false;
+    var isPickup = pkg.type === 'pickup';
+    document.getElementById('detailTitle').textContent = isPickup ? 'Registrar recogida' : 'Registrar evidencia';
+    document.getElementById('detailGuide').textContent = 'Guía ' + (pkg.guide || '—');
+    document.getElementById('detailClient').textContent = pkg.client;
+    document.getElementById('detailAddress').textContent = pkg.address;
+    document.getElementById('detailPhone').textContent = pkg.phone || '—';
+    var be = document.getElementById('btnEntregado');
+    be.textContent = isPickup ? '✓ Recogido' : '✓ Entregado';
+    if (isPickup) be.classList.add('pickup'); else be.classList.remove('pickup');
+    document.getElementById('recipientInput').value = '';
+    document.getElementById('noteInput').value = '';
+    document.getElementById('photoInput').value = '';
+    updateEvidenceFormUI();
+    document.getElementById('detailOverlay').classList.add('active');
+    if (state.settings.requireSignature) setTimeout(function () { setupSignatureCanvas(); }, 50);
+    startGPS();
+  }
+  function closeDetail() {
+    document.getElementById('detailOverlay').classList.remove('active');
+    if (gpsWatchId !== null) { navigator.geolocation.clearWatch(gpsWatchId); gpsWatchId = null; }
+    currentPackage = null; currentPhotos = []; currentPhotoIndex = 0; currentNoPhoto = false; currentGPS = null; hasSignatureStrokes = false;
+  }
+  function startGPS() {
+    var gb = document.getElementById('gpsBox'), gt = document.getElementById('gpsText');
+    gb.classList.remove('ok','error');
+    if (!navigator.geolocation) { gt.textContent = 'GPS no disponible'; gb.classList.add('error'); return; }
+    gt.textContent = 'Buscando ubicación...';
+    if (gpsWatchId !== null) navigator.geolocation.clearWatch(gpsWatchId);
+    gpsWatchId = navigator.geolocation.watchPosition(
+      function (pos) {
+        currentGPS = { lat: pos.coords.latitude, lng: pos.coords.longitude, accuracy: Math.round(pos.coords.accuracy) };
+        gt.innerHTML = '<strong>' + currentGPS.lat.toFixed(5) + ', ' + currentGPS.lng.toFixed(5) + '</strong><br><small>±' + currentGPS.accuracy + ' m</small>';
+        gb.classList.add('ok'); gb.classList.remove('error');
+      },
+      function (err) { gt.textContent = 'Error: ' + err.message; gb.classList.add('error'); gb.classList.remove('ok'); },
+      { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
+    );
+  }
+
+  function saveDelivery(status) {
+    if (!currentPackage) return;
+    var isPickup = currentPackage.type === 'pickup';
+    if (status === 'delivered') {
+      if (!currentPhotos.length && !(state.settings.allowNoPhoto && currentNoPhoto)) { showToast('⚠ Toma una foto'); return; }
+      if (state.settings.requireRecipient && !document.getElementById('recipientInput').value.trim()) { showToast('⚠ Escribe quién recibe'); return; }
+      if (state.settings.requireSignature && !hasSignatureStrokes) { showToast('⚠ El cliente debe firmar'); return; }
+    }
+    var rec = document.getElementById('recipientInput').value.trim();
+    var note = document.getElementById('noteInput').value.trim();
+    var needSig = status === 'delivered' && state.settings.requireSignature && hasSignatureStrokes;
+    var sigData = null;
+    if (needSig) { try { sigData = signatureCanvas.toDataURL('image/png'); } catch (e) { showToast('Error firma'); return; } }
+    var pkgS = currentPackage, gpsS = currentGPS, noPhotoS = currentNoPhoto;
+    var photosS = currentPhotos.slice(), sigColor = getSignatureColorHex(), ts = Date.now();
+
+    var commit = function (photos, sigD) {
+      var event = {
+        id: 'evt-' + Date.now(), packageId: pkgS.id, guide: pkgS.guide, client: pkgS.client,
+        address: pkgS.address, phone: pkgS.phone || '', recipient: rec,
+        status: status, type: pkgS.type || 'delivery',
+        photos: photos, photo: photos[0] || null,
+        localPhotos: photos.slice(),
+        noPhoto: noPhotoS && !photos.length,
+        signature: sigD, signatureColor: sigColor, signed: !!sigD,
+        note: note, gps: gpsS,
+        messengerCode: state.messenger.code, messengerName: state.messenger.name,
+        timestamp: ts
+      };
+      var toUpload = photos.slice();
+      state.events.push(event);
+      var pkg = state.route.find(function (p) { return p.id === pkgS.id; });
+      if (pkg) {
+        pkg.status = status === 'delivered' ? 'delivered' : 'issue';
+        if (status === 'delivered') pkg.retry = false;
+      }
+      pruneLocalPhotos();
+      saveMessengerData();
+      hideProcessing(); closeDetail(); renderRoute(); renderEvents();
+      syncEventToServer(event, toUpload);
+      var evtWA = JSON.parse(JSON.stringify(event));
+      if (status === 'delivered' && state.settings.promptWhatsApp) showWhatsAppPrompt(evtWA);
+      else showToast(status === 'delivered' ? '✓ ' + (isPickup ? 'Recogida' : 'Entrega') + ' registrada' : '⚠ Novedad registrada');
+    };
+    if (needSig && photosS.length > 0) {
+      showProcessing('Aplicando firma...');
+      var wm = [];
+      var next = function (i) {
+        if (i >= photosS.length) { commit(wm, sigData); return; }
+        generateWatermark(photosS[i], sigData, rec, ts, sigColor).then(function (x) { wm.push(x); next(i + 1); })
+          .catch(function () { wm.push(photosS[i]); next(i + 1); });
+      };
+      next(0);
+    } else commit(photosS, sigData);
+  }
+
+  async function syncEventToServer(event, photos) {
+    try {
+      var resp = await RutaXAPI.saveEvent(event, photos);
+      if (resp.ok && resp.photoUrls) {
+        var e = state.events.find(function (x) { return x.id === event.id; });
+        if (e) {
+          if (!e.localPhotos && photos && photos.length) e.localPhotos = photos.slice();
+          e.photos = resp.photoUrls; e.photo = resp.photoUrls[0] || null;
+          e.photoIds = resp.photoIds || []; e.synced = true;
+          pruneLocalPhotos();
+          saveMessengerData();
+          if (eventCarouselState.evt && eventCarouselState.evt.id === event.id) {
+            eventCarouselState.photos = resp.photoUrls;
+            eventCarouselState.evt.photos = resp.photoUrls;
+            renderEventCarousel();
+          }
+          renderEvents();
+        }
+        showToast('☁ Sincronizado', 1800);
+      }
+    } catch (err) {
+      var e2 = state.events.find(function (x) { return x.id === event.id; });
+      if (e2) { e2.syncError = true; saveMessengerData(); }
+      showToast('⚠ Sin conexión · guardado local', 2600);
+    }
+  }
+
+  var eventCarouselState = { evt: null, index: 0, photos: [] };
+
+  function openEventDetail(evt) {
+    document.getElementById('eventDetailGuide').textContent = 'Guía ' + (evt.guide || '—');
+    eventCarouselState = { evt: evt, index: 0, photos: getEventPhotos(evt) };
+    renderEventCarousel();
+    renderEventDetailBody(evt);
+    document.getElementById('eventOverlay').classList.add('active');
+  }
+
+  function renderEventCarousel() {
+    var wrap = document.getElementById('eventCarouselWrap');
+    var ph = eventCarouselState.photos;
+    var idx = eventCarouselState.index;
+    var evt = eventCarouselState.evt;
+    if (!ph.length) {
+      wrap.innerHTML = '<div class="carousel-main"><div class="empty-photo">' + (evt.noPhoto ? 'Entrega sin foto' : 'Sin foto') + '</div></div>';
+      return;
+    }
+    var html = '<div class="carousel-main"><img src="' + ph[idx] + '" />';
+    if (ph.length > 1) html += '<button class="car-nav prev" id="carPrevBtn">‹</button><button class="car-nav next" id="carNextBtn">›</button><div class="car-counter">' + (idx+1) + '/' + ph.length + '</div>';
+    html += '</div>';
+    if (ph.length > 1) {
+      html += '<div class="carousel-thumbs">';
+      for (var i = 0; i < ph.length; i++) html += '<img class="carousel-thumb' + (i === idx ? ' active' : '') + '" data-i="' + i + '" src="' + ph[i] + '" />';
+      html += '</div>';
+    }
+    wrap.innerHTML = html;
+    if (ph.length > 1) {
+      document.getElementById('carPrevBtn').addEventListener('click', function () {
+        eventCarouselState.index = (eventCarouselState.index - 1 + ph.length) % ph.length;
+        renderEventCarousel();
+      });
+      document.getElementById('carNextBtn').addEventListener('click', function () {
+        eventCarouselState.index = (eventCarouselState.index + 1) % ph.length;
+        renderEventCarousel();
+      });
+      wrap.querySelectorAll('.carousel-thumb').forEach(function (t) {
+        t.addEventListener('click', function () {
+          eventCarouselState.index = parseInt(t.getAttribute('data-i'), 10);
+          renderEventCarousel();
+        });
+      });
+    }
+  }
+
+  function renderEventDetailBody(evt) {
+    var ph = getEventPhotos(evt);
+    var statusLabel, statusClass;
+    if (evt.status === 'delivered') { statusLabel = evt.type === 'pickup' ? '✓ Recogido' : '✓ Entregado'; statusClass = 'delivered'; }
+    else if (evt.status === 'undone') { statusLabel = '↺ Anulada'; statusClass = 'undone'; }
+    else { statusLabel = '⚠ Novedad'; statusClass = 'issue'; }
+
+    var phone = normalizePhone(evt.phone || '');
+    var hasPhone = phone.length > 0;
+    var html = '';
+    html += '<div class="ev-status-row"><span class="status-badge ' + statusClass + '">' + statusLabel + '</span><span class="ev-time">' + formatTime(evt.timestamp) + '</span></div>';
+
+    if (evt.status === 'undone' && evt.undoReason) {
+      html += '<div class="ev-block undone-block">' +
+        '<div class="ev-label">Motivo de anulación</div>' +
+        '<div class="ev-value" style="font-size:14px;font-weight:600;">' + evt.undoReason + '</div>' +
+        (evt.undoneAt ? '<div style="font-size:11px;color:#b91c1c;margin-top:6px;">Anulada ' + formatTime(evt.undoneAt) + (evt.undoBy ? ' por ' + evt.undoBy : '') + '</div>' : '') +
+        '</div>';
+    }
+
+    html += '<div class="ev-block"><div class="ev-label">Cliente</div><div class="ev-value">' + (evt.client || '—') + '</div></div>';
+    if (evt.phone) html += '<div class="ev-block"><div class="ev-label">Teléfono</div><div class="ev-value">' + evt.phone + '</div></div>';
+    html += '<div class="ev-block"><div class="ev-label">Dirección</div><div class="ev-value">' + (evt.address || '—') + '</div></div>';
+    if (evt.recipient) html += '<div class="ev-block"><div class="ev-label">Recibido por</div><div class="ev-value">' + evt.recipient + '</div></div>';
+    if (evt.note && evt.status !== 'undone') html += '<div class="ev-block note"><div class="ev-label">Nota</div><div class="ev-value">"' + evt.note + '"</div></div>';
+    html += '<div class="ev-grid"><div class="ev-block"><div class="ev-label">Fecha y hora</div><div class="ev-value" style="font-size:13px;">' + formatFullDate(evt.timestamp) + '</div></div>' +
+      '<div class="ev-block"><div class="ev-label">Mensajero</div><div class="ev-value" style="font-size:13px;">' + (evt.messengerName || (state.messenger && state.messenger.name) || '—') + '<br><span style="color:var(--muted);font-weight:500;font-size:11px;">' + (evt.messengerCode || '') + '</span></div></div></div>';
+    if (evt.signature) html += '<div class="ev-signature-img"><div class="ev-label">Firma</div><img src="' + evt.signature + '" /></div>';
+    else if (evt.signed) html += '<div class="ev-block"><div class="ev-label">Firma</div><div class="ev-value" style="font-size:13px;">✍️ Firmado (en la foto)</div></div>';
+    if (evt.gps) html += '<div class="ev-block"><div class="ev-label">GPS</div><div class="ev-value" style="font-size:13px;">' + evt.gps.lat.toFixed(5) + ', ' + evt.gps.lng.toFixed(5) + (evt.gps.accuracy ? '<br><span style="color:var(--muted);font-weight:500;font-size:11px;">±' + evt.gps.accuracy + ' m</span>' : '') + '</div></div>';
+
+    if (evt.status === 'delivered') {
+      html += '<div class="wa-actions-wrap" id="evtWaActions"></div>';
+
+      var isAdmin = isAdminSession();
+      var elapsedMs = Date.now() - evt.timestamp;
+      var canUndo = false;
+      var undoHint = '';
+      if (isAdmin) {
+        canUndo = true;
+      } else if (elapsedMs <= UNDO_WINDOW_MS) {
+        canUndo = true;
+        var remainMin = Math.max(0, Math.ceil((UNDO_WINDOW_MS - elapsedMs) / 60000));
+        undoHint = ' <span style="font-size:11px;opacity:0.7;font-weight:500;">(' + remainMin + ' min restantes)</span>';
+      } else {
+        undoHint = ' <span style="font-size:11px;opacity:0.7;font-weight:500;">(ventana expirada)</span>';
+      }
+
+      if (canUndo) {
+        html += '<button class="undo-btn" id="undoDeliveryBtn">↺ Anular entrega' + undoHint + '</button>';
+      } else {
+        html += '<button class="undo-btn disabled" disabled>↺ Anular entrega' + undoHint + '</button>';
+      }
+    }
+
+    document.getElementById('eventDetailBody').innerHTML = html;
+
+    if (evt.status === 'delivered') {
+      var a = document.getElementById('evtWaActions');
+      var bh = '';
+      if (hasPhone) bh += '<button class="wa-share-btn" data-action="direct">Enviar mensaje al cliente</button>';
+      if (ph.length) bh += '<button class="wa-share-btn' + (hasPhone ? ' secondary' : '') + '" data-action="photo">📷 Compartir ' + (ph.length > 1 ? ph.length + ' fotos' : 'con foto') + '</button>';
+      if (a) {
+        a.innerHTML = bh;
+        a.querySelectorAll('button').forEach(function (b) {
+          b.addEventListener('click', function () {
+            var act = b.getAttribute('data-action');
+            if (act === 'direct') sendWhatsAppDirect(evt);
+            else shareWhatsAppWithPhotos(evt);
+          });
+        });
+      }
+      var undoBtn = document.getElementById('undoDeliveryBtn');
+      if (undoBtn && !undoBtn.disabled) {
+        undoBtn.addEventListener('click', function () { openUndoModal(evt); });
+      }
+    }
+  }
+  function closeEventDetail() { document.getElementById('eventOverlay').classList.remove('active'); }
+
+  // ============================================================
+  // v15 · UNDO MODAL + confirmUndo
+  // ============================================================
+  function openUndoModal(evt) {
+    undoState = { evt: evt, reason: null };
+    document.getElementById('undoPackageName').textContent = evt.client || '—';
+    document.getElementById('undoPackageGuide').textContent = 'Guía ' + (evt.guide || '—') + ' · ' + (evt.address || '');
+    document.querySelectorAll('.undo-reason-option').forEach(function (btn) { btn.classList.remove('selected'); });
+    document.getElementById('undoCustomWrap').classList.add('hidden');
+    document.getElementById('undoCustomReason').value = '';
+    document.getElementById('undoOverlay').classList.add('active');
+  }
+  function closeUndoModal() {
+    document.getElementById('undoOverlay').classList.remove('active');
+    undoState = { evt: null, reason: null };
+  }
+  function confirmUndo() {
+    if (!undoState.evt) return;
+    if (!undoState.reason) { showToast('⚠ Selecciona un motivo'); return; }
+    var customText = document.getElementById('undoCustomReason').value.trim();
+    var finalReason = undoState.reason;
+    if (undoState.reason === 'Otro motivo') {
+      if (!customText) { showToast('⚠ Describe el motivo'); return; }
+      finalReason = 'Otro: ' + customText;
+    }
+    var evt = undoState.evt;
+    var ts = Date.now();
+    var undoBy = state.messenger ? state.messenger.code : 'ADMIN';
+
+    function patchEvent(e) {
+      if (!e || e.id !== evt.id) return;
+      e.status = 'undone';
+      e.undoneAt = ts;
+      e.undoReason = finalReason;
+      e.undoBy = undoBy;
+    }
+
+    state.events.forEach(patchEvent);
+    if (!isAdminSession()) {
+      var pkg = state.route.find(function(p) { return p.id === evt.packageId; });
+      if (pkg) {
+        pkg.status = 'pending';
+        pkg.retry = true;
+        pkg.retryCount = (pkg.retryCount || 0) + 1;
+      }
+    }
+    if (adminState.live) adminState.live.forEach(function(m) { if (m.events) m.events.forEach(patchEvent); });
+    if (adminState.drillDown && adminState.drillDown.events) adminState.drillDown.events.forEach(patchEvent);
+    if (desktopAdminState.selectedRoutes) {
+      desktopAdminState.selectedRoutes.forEach(function(r) {
+        if (r.event && r.event.id === evt.id) {
+          patchEvent(r.event);
+          r.status = 'pending';
+          r.retry = true;
+        }
+      });
+    }
+
+    saveMessengerData();
+    closeUndoModal();
+    closeEventDetail();
+
+    if (!isAdminSession()) { renderRoute(); renderEvents(); }
+    if (document.getElementById('adminOverlay').classList.contains('active')) {
+      if (adminState.drillDown) renderAdminDrillDown();
+      else renderAdminLive();
+    }
+    if (document.getElementById('adminDesktopOverlay').classList.contains('active')) {
+      var mm = desktopAdminState.messengers.find(function(x) { return x.code === desktopAdminState.selectedCode; });
+      if (mm) renderDesktopMessengerDetail(mm);
+    }
+
+    showToast('✓ Entrega anulada · paquete vuelve a reintentar', 3000);
+
+    // Intento de sync servidor (best effort, si existe la función)
+    try {
+      if (RutaXAPI.undoDelivery) {
+        RutaXAPI.undoDelivery(evt.id, finalReason).catch(function(err) {
+          console.warn('Undo sync failed:', err);
+        });
+      } else if (RutaXAPI.updatePackage && evt.packageId) {
+        RutaXAPI.updatePackage(evt.packageId, 'pending').catch(function() {});
+      }
+    } catch (e) {}
+  }
+
+  function setupUndoEvents() {
+    document.querySelectorAll('.undo-reason-option').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        document.querySelectorAll('.undo-reason-option').forEach(function (b) { b.classList.remove('selected'); });
+        btn.classList.add('selected');
+        undoState.reason = btn.getAttribute('data-reason');
+        var wrap = document.getElementById('undoCustomWrap');
+        if (undoState.reason === 'Otro motivo') {
+          wrap.classList.remove('hidden');
+          document.getElementById('undoCustomReason').focus();
+        } else {
+          wrap.classList.add('hidden');
+          document.getElementById('undoCustomReason').value = '';
+        }
+      });
+    });
+    document.getElementById('undoCancelBtn').addEventListener('click', closeUndoModal);
+    document.getElementById('undoConfirmBtn').addEventListener('click', confirmUndo);
+    document.getElementById('undoOverlay').addEventListener('click', function (e) {
+      if (e.target.id === 'undoOverlay') closeUndoModal();
+    });
+  }
+
+  function openAddPackage() {
+    ['addClient','addAddress','addPhone','addGuide','addNote'].forEach(function (id) { document.getElementById(id).value = ''; });
+    setAddFormType('delivery');
+    document.getElementById('addPackageOverlay').classList.add('active');
+    setTimeout(function () { document.getElementById('addClient').focus(); }, 200);
+  }
+  function closeAddPackage() { document.getElementById('addPackageOverlay').classList.remove('active'); }
+  function setAddFormType(t) {
+    addFormType = t;
+    document.getElementById('typeDelivery').classList.toggle('active', t !== 'pickup');
+    document.getElementById('typeDelivery').classList.remove('pickup-active');
+    document.getElementById('typePickup').classList.toggle('active', t === 'pickup');
+    document.getElementById('typePickup').classList.toggle('pickup-active', t === 'pickup');
+  }
+  function confirmAddPackage() {
+    var c = document.getElementById('addClient').value.trim();
+    var a = document.getElementById('addAddress').value.trim();
+    var p = document.getElementById('addPhone').value.trim();
+    var g = document.getElementById('addGuide').value.trim();
+    if (!c) { showToast('⚠ Escribe el cliente'); return; }
+    if (!a) { showToast('⚠ Escribe la dirección'); return; }
+    var maxO = 0;
+    state.route.forEach(function (r) { if ((r.order||0) > maxO) maxO = r.order; });
+    var np = {
+      id: 'pkg-manual-' + Date.now(), order: maxO + 1,
+      guide: g || (addFormType === 'pickup' ? 'REC-' : 'MAN-') + (maxO + 1),
+      client: c, address: a, phone: p, type: addFormType,
+      status: 'pending', fromManual: true
+    };
+    state.route.push(np);
+    saveMessengerData(); renderRoute(); closeAddPackage();
+    showToast('✓ Agregado a tu ruta');
+    RutaXAPI.addPackages([np]).catch(function () { np.syncError = true; saveMessengerData(); showToast('⚠ Quedó local', 2600); });
+  }
+
+  function buildDateHaystack(ts) {
+    var d = new Date(ts);
+    var ms = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
+    var mss = ['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];
+    var ds = ['domingo','lunes','martes','miercoles','jueves','viernes','sabado'];
+    return [d.getDate(), d.getMonth()+1, d.getFullYear(), ms[d.getMonth()], mss[d.getMonth()], ds[d.getDay()]].join(' ');
+  }
+  function matchesAll(h, q) {
+    var terms = q.split(/\s+/).filter(Boolean);
+    for (var i = 0; i < terms.length; i++) if (h.indexOf(terms[i]) < 0) return false;
+    return true;
+  }
+  function performSearch(query) {
+    var q = normalizeQuery(query);
+    var hasQ = q.length > 0;
+    var pending = [], events = [];
+    state.route.forEach(function (p) {
+      if (p.status !== 'pending') return;
+      var h = normalizeQuery([p.client, p.guide, p.address, p.phone].filter(Boolean).join(' '));
+      if (!hasQ || matchesAll(h, q)) pending.push(p);
+    });
+    state.events.forEach(function (e) {
+      var h = normalizeQuery([e.client, e.guide, e.address, e.recipient, e.note, e.phone, e.undoReason, buildDateHaystack(e.timestamp)].filter(Boolean).join(' '));
+      if (!hasQ || matchesAll(h, q)) events.push(e);
+    });
+    events.sort(function (a, b) { return b.timestamp - a.timestamp; });
+    return { pending: pending, events: events, hasQuery: hasQ };
+  }
+
+  function renderSearchResults(query) {
+    var box = document.getElementById('searchResults');
+    var res = performSearch(query);
+    var html = '';
+    if (!res.hasQuery) {
+      html += '<div class="sr-section-title">Entregas recientes</div>';
+      var rec = res.events.slice(0, 8);
+      if (!rec.length && !res.pending.length) { box.innerHTML = '<div class="empty"><div class="empty-icon">🔍</div><div class="empty-title">Busca cualquier entrega</div></div>'; return; }
+      rec.forEach(function (e) { html += buildEventResultCard(e); });
+      box.innerHTML = html;
+      attachSearchResultHandlers();
+      return;
+    }
+    if (!res.pending.length && !res.events.length) { box.innerHTML = '<div class="empty"><div class="empty-icon">🔍</div><div class="empty-title">Sin resultados</div></div>'; return; }
+    if (res.pending.length) {
+      html += '<div class="sr-section-title">Pendientes (' + res.pending.length + ')</div>';
+      res.pending.forEach(function (p) { html += buildPendingResultCard(p); });
+    }
+    if (res.events.length) {
+      html += '<div class="sr-section-title">Registros (' + res.events.length + ')</div>';
+      res.events.forEach(function (e) { html += buildEventResultCard(e); });
+    }
+    box.innerHTML = html;
+    attachSearchResultHandlers();
+  }
+
+  function buildPendingResultCard(p) {
+    var isP = p.type === 'pickup';
+    var retryBadge = p.retry ? '<span class="status-badge" style="background:#fef3c7;color:#b45309;">🔁 Reintentar</span>' : '<span class="status-badge pending">○ Pendiente</span>';
+    return '<div class="sr-card" data-type="pending" data-id="' + p.id + '">' +
+      '<div class="sr-photo">' + (isP ? '📤' : '📦') + '</div>' +
+      '<div class="sr-body"><div class="sr-top"><span class="sr-guide">' + (p.guide||'—') + '</span>' + retryBadge + '</div>' +
+      '<div class="sr-title">' + p.client + '</div><div class="sr-sub">' + p.address + '</div></div><div class="chevron">›</div></div>';
+  }
+  function buildEventResultCard(e) {
+    var ph = getEventPhotos(e);
+    var stLbl, stCls;
+    if (e.status === 'delivered') { stLbl = '✓ Entregado'; stCls = 'delivered'; }
+    else if (e.status === 'undone') { stLbl = '↺ Anulada'; stCls = 'undone'; }
+    else { stLbl = '⚠ Novedad'; stCls = 'issue'; }
+    var pc;
+    if (ph[0]) pc = '<img src="' + ph[0] + '" />';
+    else if (e.noPhoto) pc = '🚫'; else pc = '📋';
+    var si = (e.signature || e.signed) ? ' · ✍️' : '';
+    return '<div class="sr-card" data-type="event" data-id="' + e.id + '">' +
+      '<div class="sr-photo">' + pc + '</div>' +
+      '<div class="sr-body"><div class="sr-top"><span class="sr-guide">' + e.guide + '</span><span class="status-badge ' + stCls + '">' + stLbl + '</span></div>' +
+      '<div class="sr-title">' + (e.client||'—') + '</div><div class="sr-sub">' + (e.address||'') + '</div>' +
+      '<div class="sr-date">🕒 ' + formatTime(e.timestamp) + si + '</div></div></div>';
+  }
+  function attachSearchResultHandlers() {
+    document.querySelectorAll('#searchResults .sr-card').forEach(function (card) {
+      card.addEventListener('click', function () {
+        var t = card.getAttribute('data-type'), id = card.getAttribute('data-id');
+        closeSearch();
+        if (t === 'pending') {
+          var pkg = state.route.find(function (p) { return p.id === id; });
+          if (pkg) openDetail(pkg);
+        } else {
+          var evt = state.events.find(function (e) { return e.id === id; });
+          if (evt) openEventDetail(evt);
+        }
+      });
+    });
+  }
+
+  function openSearch() {
+    document.getElementById('searchOverlay').classList.add('active');
+    var i = document.getElementById('searchInput');
+    i.value = ''; document.getElementById('searchClearBtn').classList.remove('visible');
+    renderSearchResults('');
+    setTimeout(function () { i.focus(); }, 100);
+  }
+  function closeSearch() { document.getElementById('searchOverlay').classList.remove('active'); }
+
+  function openSettings() {
+    document.getElementById('settingsAccountText').textContent = 'Estás como: ' + state.messenger.name + ' (' + state.messenger.code + ') · ' + state.messenger.zone;
+    document.getElementById('csvPreviewBox').classList.add('hidden');
+    pendingCSVItems = null; updateTogglesUI();
+    document.getElementById('settingsOverlay').classList.add('active');
+  }
+  function closeSettings() { document.getElementById('settingsOverlay').classList.remove('active'); }
+
+  function updateTogglesUI() {
+    document.getElementById('toggleRecipient').classList.toggle('on', state.settings.requireRecipient);
+    document.getElementById('toggleNoPhoto').classList.toggle('on', state.settings.allowNoPhoto);
+    document.getElementById('toggleWhatsApp').classList.toggle('on', state.settings.promptWhatsApp);
+    document.getElementById('toggleSignature').classList.toggle('on', state.settings.requireSignature);
+    document.getElementById('signatureColorWrap').classList.toggle('hidden', !state.settings.requireSignature);
+    updateColorChips();
+  }
+  function updateColorChips() {
+    document.querySelectorAll('.color-chip').forEach(function (c) { c.classList.toggle('active', c.getAttribute('data-color') === state.settings.signatureColor); });
+  }
+
+  function parseCSV(text) {
+    var rows = [], row = [], cur = '', iq = false;
+    if (text.charCodeAt(0) === 0xFEFF) text = text.slice(1);
+    for (var i = 0; i < text.length; i++) {
+      var c = text[i];
+      if (iq) {
+        if (c === '"') { if (text[i+1] === '"') { cur += '"'; i++; } else iq = false; }
+        else cur += c;
+      } else {
+        if (c === '"') iq = true;
+        else if (c === ',' || c === ';') { row.push(cur); cur = ''; }
+        else if (c === '\n') { row.push(cur); rows.push(row); row = []; cur = ''; }
+        else if (c !== '\r') cur += c;
+      }
+    }
+    if (cur.length || row.length) { row.push(cur); rows.push(row); }
+    return rows;
+  }
+  function normHead(s) { return (s||'').toString().trim().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,''); }
+  function detectColumns(h) {
+    var m = { guide: -1, client: -1, address: -1, phone: -1, type: -1 };
+    for (var i = 0; i < h.length; i++) {
+      var l = normHead(h[i]);
+      if (m.guide < 0 && ['guia','guide','num guia','numero de guia','guia de envio','tracking'].indexOf(l) >= 0) m.guide = i;
+      else if (m.client < 0 && ['cliente','client','nombre','name','destinatario','nombre destinatario','nombre cliente'].indexOf(l) >= 0) m.client = i;
+      else if (m.address < 0 && ['direccion','address','dir','direccion de entrega','direccion destino'].indexOf(l) >= 0) m.address = i;
+      else if (m.phone < 0 && ['telefono','phone','tel','celular','movil','contacto'].indexOf(l) >= 0) m.phone = i;
+      else if (m.type < 0 && ['tipo','type','categoria','tipo de visita'].indexOf(l) >= 0) m.type = i;
+    }
+    return m;
+  }
+  function rowsToItems(rows) {
+    if (!rows.length) return [];
+    var h = rows[0], map = detectColumns(h);
+    var useH = map.guide >= 0 || map.address >= 0 || map.client >= 0;
+    var dr = useH ? rows.slice(1) : rows;
+    var items = [];
+    for (var i = 0; i < dr.length; i++) {
+      var r = dr[i];
+      var empty = true;
+      for (var k = 0; k < r.length; k++) if (r[k] && r[k].toString().trim()) { empty = false; break; }
+      if (empty) continue;
+      var g, c, a, p, t = 'delivery';
+      if (useH) {
+        g = map.guide >= 0 ? (r[map.guide]||'').trim() : '';
+        c = map.client >= 0 ? (r[map.client]||'').trim() : '';
+        a = map.address >= 0 ? (r[map.address]||'').trim() : '';
+        p = map.phone >= 0 ? (r[map.phone]||'').trim() : '';
+        if (map.type >= 0) { var tt = normHead(r[map.type]||''); if (tt === 'recogida' || tt === 'pickup' || tt === 'recoger') t = 'pickup'; }
+      } else {
+        g = (r[0]||'').trim(); c = (r[1]||'').trim(); a = (r[2]||'').trim(); p = (r[3]||'').trim();
+      }
+      if (!g && !a) continue;
+      items.push({ guide: g, client: c, address: a, phone: p, type: t });
+    }
+    return items;
+  }
+
+  function setupPhotoInput() {
+    var inp = document.getElementById('photoInput');
+    document.getElementById('photoArea').addEventListener('click', function () { inp.click(); });
+    document.getElementById('addPhotoBtn').addEventListener('click', function (e) { e.stopPropagation(); inp.click(); });
+    inp.addEventListener('change', function (e) {
+      var f = e.target.files && e.target.files[0];
+      if (!f) return;
+      showToast('Procesando foto...', 1200);
+      compressImage(f).then(function (d) { addPhotoToCurrent(d); showToast('📷 Foto ' + currentPhotos.length + ' agregada', 1400); })
+        .catch(function () { showToast('Error procesando foto'); })
+        .finally(function () { inp.value = ''; });
+    });
+  }
+
+  function setupSignatureEvents() {
+    var c = document.getElementById('signatureCanvas');
+    if (!c) return;
+    c.addEventListener('pointerdown', onSigStart);
+    c.addEventListener('pointermove', onSigMove);
+    c.addEventListener('pointerup', onSigEnd);
+    c.addEventListener('pointercancel', onSigEnd);
+    document.getElementById('sigClearBtn').addEventListener('click', function () { clearSignature(); showToast('Firma borrada', 1400); });
+  }
+
+  function updateFabVisibility() {
+    var t = document.querySelector('.tab.active').getAttribute('data-tab');
+    document.getElementById('addManualFab').classList.toggle('hidden', t !== 'ruta');
+  }
+
+  function setupEventListeners() {
+    document.querySelectorAll('.tab').forEach(function (tab) {
+      tab.addEventListener('click', function () {
+        document.querySelectorAll('.tab').forEach(function (x) { x.classList.remove('active'); });
+        document.querySelectorAll('.view').forEach(function (v) { v.classList.remove('active'); });
+        tab.classList.add('active');
+        document.getElementById(tab.getAttribute('data-tab') === 'ruta' ? 'viewRuta' : 'viewRegistro').classList.add('active');
+        updateFabVisibility();
+      });
+    });
+    document.getElementById('backBtn').addEventListener('click', closeDetail);
+    document.getElementById('btnEntregado').addEventListener('click', function () { saveDelivery('delivered'); });
+    document.getElementById('btnNovedad').addEventListener('click', function () { saveDelivery('issue'); });
+    document.getElementById('noPhotoBtn').addEventListener('click', function () {
+      if (currentPhotos.length) { currentPhotos = []; currentPhotoIndex = 0; }
+      currentNoPhoto = !currentNoPhoto;
+      updateEvidenceFormUI();
+    });
+    document.getElementById('eventBackBtn').addEventListener('click', closeEventDetail);
+    document.getElementById('settingsBtn').addEventListener('click', openSettings);
+    document.getElementById('settingsBackBtn').addEventListener('click', closeSettings);
+    [['toggleRecipient','requireRecipient'],['toggleNoPhoto','allowNoPhoto'],['toggleWhatsApp','promptWhatsApp'],['toggleSignature','requireSignature']].forEach(function (a) {
+      var el = document.getElementById(a[0]);
+      if (el) el.addEventListener('click', function () {
+        state.settings[a[1]] = !state.settings[a[1]];
+        saveMessengerData(); updateTogglesUI();
+        showToast(state.settings[a[1]] ? 'Ajuste activado' : 'Ajuste desactivado', 1600);
+        RutaXAPI.saveSettings(state.settings).catch(function () {});
+      });
+    });
+    document.querySelectorAll('.color-chip').forEach(function (ch) {
+      ch.addEventListener('click', function () {
+        state.settings.signatureColor = ch.getAttribute('data-color');
+        saveMessengerData(); updateColorChips();
+        if (signatureCtx) signatureCtx.strokeStyle = getSignatureColorHex();
+        showToast('Color cambiado', 1500);
+        RutaXAPI.saveSettings(state.settings).catch(function () {});
+      });
+    });
+    document.getElementById('changeMessengerBtn').addEventListener('click', function () {
+      closeSettings(); RutaXAPI.clearSession(); localStorage.removeItem(CURRENT_KEY);
+      showSplash(); RutaXAPI.publicList().then(renderSplashFromAPI).catch(renderSplash);
+    });
+    document.getElementById('resetRouteBtn').addEventListener('click', function () {
+      if (!confirm('¿Reiniciar los datos de ' + state.messenger.name + '?')) return;
+      localStorage.removeItem(dataKey(state.messenger.code, 'route'));
+      localStorage.removeItem(dataKey(state.messenger.code, 'events'));
+      localStorage.removeItem(dataKey(state.messenger.code, 'settings'));
+      state.route = []; state.events = []; renderRoute(); renderEvents();
+      closeSettings(); showToast('Ruta reiniciada');
+    });
+    var csvI = document.getElementById('csvInput');
+    document.getElementById('csvSelectBtn').addEventListener('click', function () { csvI.click(); });
+    csvI.addEventListener('change', function (e) {
+      var f = e.target.files && e.target.files[0]; if (!f) return;
+      var rd = new FileReader();
+      rd.onload = function () {
+        try {
+          var items = rowsToItems(parseCSV(rd.result));
+          if (!items.length) { showToast('⚠ Sin filas válidas'); return; }
+          pendingCSVItems = items;
+          document.getElementById('csvPreview').innerHTML = '<div style="font-weight:700;color:var(--ink);margin-bottom:6px;">' + items.length + ' ítems:</div>' +
+            items.slice(0, 50).map(function (it) {
+              return '<div class="csv-preview-item"><div><span class="guide">' + (it.guide||'(sin guía)') + '</span> · ' + (it.client||'Sin cliente') + '</div><div class="addr">' + (it.address||'') + '</div></div>';
+            }).join('');
+          document.getElementById('csvPreviewBox').classList.remove('hidden');
+        } catch (err) { showToast('Error al leer'); }
+        finally { csvI.value = ''; }
+      };
+      rd.readAsText(f, 'UTF-8');
+    });
+    document.getElementById('csvCancelBtn').addEventListener('click', function () {
+      pendingCSVItems = null; document.getElementById('csvPreviewBox').classList.add('hidden');
+    });
+    document.getElementById('csvConfirmBtn').addEventListener('click', function () {
+      if (!pendingCSVItems || !pendingCSVItems.length) return;
+      var c = pendingCSVItems.length;
+      var maxO = 0; state.route.forEach(function (r) { if ((r.order||0) > maxO) maxO = r.order; });
+      var now = Date.now();
+      pendingCSVItems.forEach(function (it, j) {
+        state.route.push({
+          id: 'pkg-csv-' + now + '-' + j, order: maxO + j + 1,
+          guide: it.guide || ('CSV-' + (now + j)), client: it.client || 'Sin nombre',
+          address: it.address || 'Sin dirección', phone: it.phone || '',
+          type: it.type || 'delivery', status: 'pending', fromCSV: true
+        });
+      });
+      saveMessengerData(); renderRoute();
+      pendingCSVItems = null; document.getElementById('csvPreviewBox').classList.add('hidden');
+      closeSettings(); showToast('✓ ' + c + ' agregada' + (c > 1 ? 's' : ''));
+    });
+    document.getElementById('searchTrigger').addEventListener('click', openSearch);
+    document.getElementById('searchCancelBtn').addEventListener('click', closeSearch);
+    var si = document.getElementById('searchInput'), sc = document.getElementById('searchClearBtn');
+    si.addEventListener('input', function () {
+      sc.classList.toggle('visible', !!si.value.length);
+      clearTimeout(searchDebounceTimer);
+      searchDebounceTimer = setTimeout(function () { renderSearchResults(si.value); }, 180);
+    });
+    sc.addEventListener('click', function () { si.value = ''; sc.classList.remove('visible'); renderSearchResults(''); si.focus(); });
+    document.getElementById('waSkipBtn').addEventListener('click', closeWhatsAppPrompt);
+    document.getElementById('waDirectBtn').addEventListener('click', function () {
+      var evt = pendingWhatsAppEvent; closeWhatsAppPrompt();
+      if (!evt) return;
+      if (normalizePhone(evt.phone || '')) sendWhatsAppDirect(evt); else shareWhatsAppWithPhotos(evt);
+    });
+    document.getElementById('waSharePhotoBtn').addEventListener('click', function () {
+      var evt = pendingWhatsAppEvent; closeWhatsAppPrompt();
+      if (evt) shareWhatsAppWithPhotos(evt);
+    });
+    document.getElementById('addManualFab').addEventListener('click', openAddPackage);
+    document.getElementById('addCancelBtn').addEventListener('click', closeAddPackage);
+    document.getElementById('addConfirmBtn').addEventListener('click', confirmAddPackage);
+    document.getElementById('typeDelivery').addEventListener('click', function () { setAddFormType('delivery'); });
+    document.getElementById('typePickup').addEventListener('click', function () { setAddFormType('pickup'); });
+    document.getElementById('addPackageOverlay').addEventListener('click', function (e) {
+      if (e.target.id === 'addPackageOverlay') closeAddPackage();
+    });
+    document.getElementById('whatsappOverlay').addEventListener('click', function (e) {
+      if (e.target.id === 'whatsappOverlay') closeWhatsAppPrompt();
+    });
+    setupSignatureEvents();
+    setupUndoEvents();
+  }
+
+  function openPinModal(code, name, zone) {
+    pinTarget = { code: code, name: name, zone: zone };
+    pinBuffer = '';
+    document.getElementById('pinAvatar').textContent = code;
+    document.getElementById('pinName').textContent = name;
+    document.getElementById('pinZone').textContent = zone || '—';
+    document.getElementById('pinError').textContent = '';
+    updatePinDots();
+    var pad = document.getElementById('pinPad');
+    var html = '';
+    for (var i = 1; i <= 9; i++) html += '<button class="pin-key" data-num="' + i + '">' + i + '</button>';
+    html += '<button class="pin-key pin-key-empty" tabindex="-1"></button>';
+    html += '<button class="pin-key" data-num="0">0</button>';
+    html += '<button class="pin-key pin-key-del" data-action="del">⌫</button>';
+    pad.innerHTML = html;
+    pad.onclick = function (e) {
+      var b = e.target.closest('.pin-key'); if (!b) return;
+      var n = b.getAttribute('data-num'), a = b.getAttribute('data-action');
+      if (n !== null) pinKey(n); else if (a === 'del') pinDelete();
+    };
+    document.getElementById('pinOverlay').classList.add('active');
+  }
+  function closePinModal() { document.getElementById('pinOverlay').classList.remove('active'); pinBuffer = ''; }
+  function updatePinDots() {
+    document.querySelectorAll('#pinDots span').forEach(function (d, i) { d.classList.toggle('filled', i < pinBuffer.length); });
+  }
+  function pinKey(n) {
+    if (pinBuffer.length >= 4) return;
+    pinBuffer += n; updatePinDots();
+    document.getElementById('pinError').textContent = '';
+    if (pinBuffer.length === 4) setTimeout(handlePinSubmit, 180);
+  }
+  function pinDelete() { pinBuffer = pinBuffer.slice(0, -1); updatePinDots(); }
+
+  function handlePinSubmit() {
+    if (pinBuffer.length !== 4) return;
+    var err = document.getElementById('pinError');
+    err.style.color = 'rgba(255,255,255,0.7)'; err.textContent = 'Verificando...';
+    RutaXAPI.login(pinTarget.code, pinBuffer).then(function (data) {
+      if (!data.ok) throw new Error(data.error || 'PIN incorrecto');
+      var info = data.messenger;
+      localStorage.setItem('rutax_info_' + info.code, JSON.stringify(info));
+      localStorage.setItem('rutax_current_v8', info.code);
+      state.messenger = info;
+      if (data.role === 'admin') {
+        closePinModal(); hideSplash();
+        if (isDesktopViewport()) openAdminDesktop();
+        else openAdminPanel();
+        return;
+      }
+      state.route = data.route || [];
+      state.events = mergeLocalPhotos(data.events || []);
+      state.settings = Object.assign({}, DEFAULT_SETTINGS, data.settings || {});
+      state.route.forEach(function (p) { if (!p.status) p.status = 'pending'; if (!p.type) p.type = 'delivery'; });
+      state.events.forEach(function (e) { if (!e.messengerName || e.messengerName === info.code) e.messengerName = info.name; });
+      saveMessengerData();
+      closePinModal(); renderHeader(); renderRoute(); renderEvents(); hideSplash(); updateFabVisibility();
+      showToast('Bienvenido, ' + info.name.split(' ')[0]);
+    }).catch(function (e) {
+      err.style.color = '#fca5a5'; err.textContent = e.message || 'Error';
+      pinBuffer = ''; updatePinDots();
+    });
+  }
+
+  function openAdminPanel() {
+    document.getElementById('adminSubtitle').textContent = 'Conectado como ' + (state.messenger ? state.messenger.name : 'Administrador');
+    document.querySelectorAll('.admin-tab').forEach(function (t) { t.classList.remove('active'); });
+    document.querySelectorAll('.admin-view').forEach(function (v) { v.classList.remove('active'); });
+    document.querySelector('.admin-tab[data-atab="mensajeros"]').classList.add('active');
+    document.getElementById('adminMensajerosView').classList.add('active');
+    document.getElementById('adminOverlay').classList.add('active');
+    refreshAdminMensajeros();
+  }
+  function closeAdminPanel() { document.getElementById('adminOverlay').classList.remove('active'); }
+  function adminLogout() {
+    RutaXAPI.clearSession();
+    localStorage.removeItem(CURRENT_KEY); localStorage.removeItem('rutax_current_v8');
+    closeAdminPanel(); showSplash();
+    RutaXAPI.publicList().then(renderSplashFromAPI).catch(renderSplash);
+  }
+
+  function refreshAdminMensajeros() {
+    var box = document.getElementById('adminMensajerosView');
+    box.innerHTML = '<div class="admin-live-empty">Cargando...</div>';
+    RutaXAPI.adminListMessengers().then(function (data) {
+      adminState.messengers = data.messengers || [];
+      renderAdminMensajeros();
+    }).catch(function (err) {
+      box.innerHTML = '<div class="admin-live-empty">⚠ ' + (err.message || 'Error') + '</div>';
+    });
+  }
+
+  function renderAdminMensajeros() {
+    var box = document.getElementById('adminMensajerosView');
+    var act = adminState.messengers.filter(function (m) { return m.active; }).length;
+    var html = '<div style="font-size:12px;color:var(--muted);font-weight:700;margin-bottom:10px;padding:0 2px;">' + act + ' activo' + (act === 1 ? '' : 's') + ' de ' + adminState.messengers.length + '</div>';
+    if (!adminState.messengers.length) { box.innerHTML = html + '<div class="admin-live-empty">Sin mensajeros.</div>'; return; }
+    adminState.messengers.forEach(function (m) {
+      html += '<div class="ms-card' + (m.active ? '' : ' inactive') + '" data-code="' + m.code + '">' +
+        '<div class="ms-avatar">' + m.code + '</div>' +
+        '<div class="ms-info"><div class="ms-name">' + m.name + '</div>' +
+        '<div class="ms-zone">' + (m.zone || 'Sin zona') + ' · <span class="ms-pin">PIN: ' + m.pin + '</span></div></div>' +
+        '<div class="ms-right"><button class="ms-edit-btn" data-action="edit" data-code="' + m.code + '">Editar</button>' +
+        '<button class="toggle-switch' + (m.active ? ' on' : '') + '" data-action="toggle" data-code="' + m.code + '"></button></div></div>';
+    });
+    html += '<button class="admin-add-btn" id="adminAddMsBtn">+ Agregar mensajero</button>';
+    box.innerHTML = html;
+    box.querySelectorAll('[data-action="edit"]').forEach(function (b) {
+      b.addEventListener('click', function (ev) {
+        ev.stopPropagation();
+        var mm = adminState.messengers.find(function (x) { return x.code === b.getAttribute('data-code'); });
+        if (mm) openEditMessenger(mm);
+      });
+    });
+    box.querySelectorAll('[data-action="toggle"]').forEach(function (b) {
+      b.addEventListener('click', function (ev) {
+        ev.stopPropagation();
+        var mm = adminState.messengers.find(function (x) { return x.code === b.getAttribute('data-code'); });
+        if (!mm) return;
+        var na = !mm.active;
+        b.classList.toggle('on', na);
+        RutaXAPI.adminUpdateMessenger({ code: mm.code, active: na }).then(function () {
+          mm.active = na; showToast(na ? '✓ Habilitado' : '⏸ Deshabilitado', 1600); renderAdminMensajeros();
+        }).catch(function (err) {
+          b.classList.toggle('on', mm.active);
+          showToast('⚠ ' + (err.message || 'Error'), 2400);
+        });
+      });
+    });
+    var a = document.getElementById('adminAddMsBtn');
+    if (a) a.addEventListener('click', function () { openEditMessenger(null); });
+  }
+
+  function openEditMessenger(mm) {
+    adminState.editingCode = mm ? mm.code : null;
+    document.getElementById('editMessengerTitle').textContent = mm ? 'Editar mensajero' : 'Nuevo mensajero';
+    document.getElementById('editMessengerSub').textContent = mm ? 'Cambia sus datos.' : 'Código automático';
+    document.getElementById('editMsCode').value = mm ? mm.code : 'Auto';
+    document.getElementById('editMsName').value = mm ? mm.name : '';
+    document.getElementById('editMsZone').value = mm && mm.zone !== 'Sin asignar' ? mm.zone : '';
+    document.getElementById('editMsPin').value = mm ? mm.pin : '1234';
+    document.getElementById('editMessengerOverlay').classList.add('active');
+    setTimeout(function () { document.getElementById('editMsName').focus(); }, 200);
+  }
+  function closeEditMessenger() {
+    document.getElementById('editMessengerOverlay').classList.remove('active');
+    adminState.editingCode = null;
+  }
+  function confirmEditMessenger() {
+    var n = document.getElementById('editMsName').value.trim();
+    var z = document.getElementById('editMsZone').value.trim() || 'Sin asignar';
+    var p = document.getElementById('editMsPin').value.trim();
+    if (!n) { showToast('⚠ Escribe el nombre'); return; }
+    if (!p || p.length < 4) { showToast('⚠ PIN 4 dígitos'); return; }
+    var isNew = adminState.editingCode === null;
+    var pl = { name: n, zone: z, pin: p };
+    var promise = isNew ? RutaXAPI.adminAddMessenger(pl) : (pl.code = adminState.editingCode, RutaXAPI.adminUpdateMessenger(pl));
+    promise.then(function (d) {
+      closeEditMessenger();
+      showToast(isNew ? '✓ Creado ' + (d.code || '') : '✓ Actualizado', 2200);
+      refreshAdminMensajeros();
+      if (document.getElementById('adminDesktopOverlay').classList.contains('active')) loadDesktopMessengers();
+    }).catch(function (err) { showToast('⚠ ' + (err.message || 'Error'), 2600); });
+  }
+
+  function renderAdminLive() {
+    var box = document.getElementById('adminVivoView');
+    if (adminState.drillDown) { renderAdminDrillDown(); return; }
+    var since = adminState.liveSince || (function () { var d = new Date(); d.setHours(0,0,0,0); return d.getTime(); })();
+    var until = adminState.liveUntil || (since + 86400000);
+    box.innerHTML = '<div class="admin-live-empty">Cargando...</div>';
+    RutaXAPI.adminLive(since, until).then(function (data) {
+      adminState.live = data.messengers || [];
+      adminState.liveSince = data.since; adminState.liveUntil = data.until;
+      renderAdminLiveList();
+    }).catch(function (err) { box.innerHTML = '<div class="admin-live-empty">⚠ ' + (err.message || 'Error') + '</div>'; });
+  }
+
+  function renderAdminLiveList() {
+    var box = document.getElementById('adminVivoView');
+    var hoy = new Date(); hoy.setHours(0,0,0,0);
+    var isToday = adminState.liveSince === hoy.getTime();
+    var html = '<div class="live-header-bar"><span class="live-date-label">' + (isToday ? '📅 Hoy' : '📅 ' + formatDateInput(adminState.liveSince)) + '</span>' +
+      '<input type="date" class="live-date-input" id="adminLiveDate" value="' + formatDateInput(adminState.liveSince) + '" />' +
+      '<button class="live-refresh-btn" id="adminLiveRefresh">↻</button></div>';
+    if (!adminState.live.length) {
+      html += '<div class="admin-live-empty">Sin mensajeros activos.</div>';
+      box.innerHTML = html; wireLiveControls(); return;
+    }
+    var now = Date.now();
+    adminState.live.forEach(function (m) {
+      var st = m.stats;
+      var total = st.routeTotal || 1;
+      var pct = st.routeTotal ? Math.round((st.delivered / total) * 100) : 0;
+      var sc = 'st-idle', dot = '🔴';
+      if (st.lastActivity) {
+        var mn = Math.round((now - st.lastActivity) / 60000);
+        if (mn < 30) { sc = 'st-fresh'; dot = '🟢'; }
+        else if (mn < 60) { sc = 'st-paused'; dot = '🟡'; }
+      }
+      var last = st.lastActivity ? 'Última: ' + formatTime(st.lastActivity) : 'Sin actividad';
+      html += '<div class="live-card ' + sc + '" data-code="' + m.code + '">' +
+        '<div class="live-card-head"><div><div class="live-name">' + m.name + '</div><div class="live-zone">' + m.code + ' · ' + (m.zone||'') + '</div></div><div class="live-status-dot">' + dot + '</div></div>' +
+        '<div class="live-progress-bar"><div class="live-progress-fill" style="width:' + pct + '%"></div></div>' +
+        '<div class="live-progress-text">' + st.delivered + ' de ' + st.routeTotal + ' · ' + pct + '%</div>' +
+        '<div class="live-meta"><span>🕒 ' + last + '</span><span class="live-sig-count">✍️ ' + st.signed + '</span>' +
+        (st.issues ? '<span style="color:#b45309;">⚠ ' + st.issues + '</span>' : '') + '</div></div>';
+    });
+    box.innerHTML = html;
+    box.querySelectorAll('.live-card').forEach(function (c) {
+      c.addEventListener('click', function () {
+        var mm = adminState.live.find(function (x) { return x.code === c.getAttribute('data-code'); });
+        if (mm) { adminState.drillDown = mm; renderAdminDrillDown(); }
+      });
+    });
+    wireLiveControls();
+  }
+
+  function wireLiveControls() {
+    var d = document.getElementById('adminLiveDate');
+    if (d) d.addEventListener('change', function () {
+      var p = d.value.split('-');
+      var dt = new Date(parseInt(p[0],10), parseInt(p[1],10)-1, parseInt(p[2],10));
+      dt.setHours(0,0,0,0);
+      adminState.liveSince = dt.getTime(); adminState.liveUntil = adminState.liveSince + 86400000;
+      renderAdminLive();
+    });
+    var r = document.getElementById('adminLiveRefresh');
+    if (r) r.addEventListener('click', function () { renderAdminLive(); });
+  }
+
+  function renderAdminDrillDown() {
+    var box = document.getElementById('adminVivoView');
+    var m = adminState.drillDown;
+    if (!m) { renderAdminLive(); return; }
+    var html = '<div class="admin-drill-header"><button class="admin-drill-back" id="adminDrillBack">←</button>' +
+      '<div class="admin-drill-title">' + m.name + ' · ' + m.events.length + ' registro' + (m.events.length === 1 ? '' : 's') + '</div></div>';
+    if (!m.events.length) {
+      html += '<div class="admin-live-empty">Sin registros en esta fecha.</div>';
+      box.innerHTML = html;
+      document.getElementById('adminDrillBack').addEventListener('click', function () { adminState.drillDown = null; renderAdminLive(); });
+      return;
+    }
+    m.events.forEach(function (e) {
+      var stLbl, stCls;
+      if (e.status === 'delivered') { stLbl = '✓ Entregado'; stCls = 'delivered'; }
+      else if (e.status === 'undone') { stLbl = '↺ Anulada'; stCls = 'undone'; }
+      else { stLbl = '⚠ Novedad'; stCls = 'issue'; }
+      var pc = e.photos && e.photos.length ? '<img src="' + e.photos[0] + '" />' : (e.noPhoto ? '🚫' : '📋');
+      var sb = e.signed ? '<span class="ae-badge-sig">✍️</span>' : '';
+      var cardCls = e.status === 'undone' ? ' undone' : '';
+      html += '<div class="ae-card' + cardCls + '" data-id="' + e.id + '">' +
+        '<div class="ae-photo">' + pc + sb + '</div>' +
+        '<div class="ae-body"><div class="ae-head"><span class="ae-guide">' + (e.guide||'—') + '</span>' +
+        '<span class="status-badge ' + stCls + '" style="font-size:9px;">' + stLbl + '</span></div>' +
+        '<div class="ae-client">' + (e.client||'—') + '</div><div class="ae-addr">' + (e.address||'') + '</div>' +
+        '<div class="ae-time">🕒 ' + formatTime(e.timestamp) + (e.recipient ? ' · ' + e.recipient : '') + '</div></div></div>';
+    });
+    box.innerHTML = html;
+    document.getElementById('adminDrillBack').addEventListener('click', function () { adminState.drillDown = null; renderAdminLive(); });
+    box.querySelectorAll('.ae-card').forEach(function (c) {
+      c.addEventListener('click', function () {
+        var evt = m.events.find(function (x) { return x.id === c.getAttribute('data-id'); });
+        if (evt) openEventDetail(evt);
+      });
+    });
+  }
+
+  function setupAdminEvents() {
+    document.getElementById('adminAccessBtn').addEventListener('click', function () { openPinModal('ADMIN', 'Administrador', 'Panel de control'); });
+    document.getElementById('adminBackBtn').addEventListener('click', function () {
+      if (adminState.drillDown) { adminState.drillDown = null; renderAdminLive(); return; }
+      closeAdminPanel(); showSplash();
+    });
+    document.getElementById('adminLogoutBtn').addEventListener('click', adminLogout);
+    document.querySelectorAll('.admin-tab').forEach(function (t) {
+      t.addEventListener('click', function () {
+        document.querySelectorAll('.admin-tab').forEach(function (x) { x.classList.remove('active'); });
+        document.querySelectorAll('.admin-view').forEach(function (v) { v.classList.remove('active'); });
+        t.classList.add('active');
+        var n = t.getAttribute('data-atab');
+        document.getElementById('admin' + (n === 'mensajeros' ? 'Mensajeros' : 'Vivo') + 'View').classList.add('active');
+        adminState.drillDown = null;
+        if (n === 'mensajeros') refreshAdminMensajeros(); else renderAdminLive();
+      });
+    });
+    document.getElementById('editMsCancelBtn').addEventListener('click', closeEditMessenger);
+    document.getElementById('editMsConfirmBtn').addEventListener('click', confirmEditMessenger);
+    document.getElementById('editMessengerOverlay').addEventListener('click', function (e) {
+      if (e.target.id === 'editMessengerOverlay') closeEditMessenger();
+    });
+  }
+
+  function openAdminDesktop() {
+    document.getElementById('adminOverlay').classList.remove('active');
+    document.getElementById('adminDesktopOverlay').classList.add('active');
+    document.querySelectorAll('.ad-tab').forEach(function (t) { t.classList.remove('active'); });
+    document.querySelector('.ad-tab[data-dtab="mensajeros"]').classList.add('active');
+    desktopAdminState.activeTab = 'mensajeros';
+    loadDesktopMessengers();
+  }
+  function closeAdminDesktop() { document.getElementById('adminDesktopOverlay').classList.remove('active'); }
+
+  function loadDesktopMessengers() {
+    var list = document.getElementById('adMsgList');
+    list.innerHTML = '<div style="padding:20px;text-align:center;color:var(--muted);font-size:12px;">Cargando...</div>';
+    RutaXAPI.adminListMessengers().then(function (data) {
+      desktopAdminState.messengers = data.messengers || [];
+      if (!desktopAdminState.selectedCode && desktopAdminState.messengers.length) desktopAdminState.selectedCode = desktopAdminState.messengers[0].code;
+      renderDesktopSidebar();
+      renderDesktopMain();
+    }).catch(function (err) {
+      list.innerHTML = '<div style="padding:20px;text-align:center;color:#dc2626;font-size:12px;">⚠ ' + (err.message || 'Error') + '</div>';
+    });
+  }
+
+  function renderDesktopSidebar() {
+    var list = document.getElementById('adMsgList');
+    var f = (desktopAdminState.filter || '').toLowerCase();
+    var ff = desktopAdminState.messengers.filter(function (m) {
+      if (!f) return true;
+      return (m.name + ' ' + m.code + ' ' + (m.zone || '')).toLowerCase().indexOf(f) >= 0;
+    });
+    if (!ff.length) { list.innerHTML = '<div style="padding:20px;text-align:center;color:var(--muted);font-size:12px;">Sin resultados</div>'; return; }
+    list.innerHTML = ff.map(function (m) {
+      return '<div class="ad-msg-item' + (m.code === desktopAdminState.selectedCode ? ' active' : '') + (m.active ? '' : ' inactive') + '" data-code="' + m.code + '">' +
+        '<div class="ad-mini-avatar">' + m.code + '</div>' +
+        '<div class="ad-mini-info"><div class="ad-mini-name">' + m.name + '</div><div class="ad-mini-zone">' + (m.zone||'Sin zona') + '</div></div>' +
+        '<div class="ad-dot' + (m.active ? ' on' : '') + '"></div></div>';
+    }).join('');
+    list.querySelectorAll('.ad-msg-item').forEach(function (it) {
+      it.addEventListener('click', function () {
+        desktopAdminState.selectedCode = it.getAttribute('data-code');
+        renderDesktopSidebar();
+        if (desktopAdminState.activeTab === 'mensajeros') loadDesktopMessengerDetail();
+      });
+    });
+  }
+
+  function renderDesktopMain() {
+    if (desktopAdminState.activeTab === 'mensajeros') loadDesktopMessengerDetail();
+    else renderDesktopLive();
+  }
+
+  function loadDesktopMessengerDetail() {
+    var main = document.getElementById('adMain');
+    var mm = desktopAdminState.messengers.find(function (x) { return x.code === desktopAdminState.selectedCode; });
+    if (!mm) { main.innerHTML = '<div class="ad-empty"><div class="ad-empty-icon">👥</div><div>Selecciona un mensajero</div></div>'; return; }
+    main.innerHTML = '<div class="ad-empty"><div class="ad-empty-icon">⏳</div><div>Cargando rutas...</div></div>';
+    RutaXAPI.adminGetRoutes(mm.code).then(function (data) {
+      desktopAdminState.selectedRoutes = data.routes || [];
+      desktopAdminState.routesFilter = '';
+      renderDesktopMessengerDetail(mm);
+    }).catch(function (err) {
+      main.innerHTML = '<div class="ad-empty"><div class="ad-empty-icon">⚠️</div><div>' + (err.message || 'Error') + '</div></div>';
+    });
+  }
+
+  function renderRoutesTable(routes, filter) {
+    var q = normalizeQuery(filter || '');
+    var filtered = routes.filter(function (r) {
+      if (!q) return true;
+      var hay = normalizeQuery([
+        r.client || '', r.guide || '', r.address || '',
+        (r.event && r.event.recipient) || '',
+        (r.event && r.event.note) || '',
+        (r.event && r.event.guide) || '',
+        (r.event && r.event.undoReason) || ''
+      ].join(' '));
+      return hay.indexOf(q) >= 0;
+    });
+
+    if (!filtered.length) {
+      return '<div class="ad-empty" style="padding:40px 20px;"><div class="ad-empty-icon">🔍</div><div>Sin resultados' + (q ? ' para "' + filter + '"' : '') + '</div></div>';
+    }
+
+    var html = '<table class="ad-table"><thead><tr>' +
+      '<th style="width:56px;">Foto</th><th>#</th><th>Guía</th><th>Cliente</th><th>Dirección</th><th>Tipo</th><th>Estado</th>' +
+      '</tr></thead><tbody>';
+
+    var sorted = filtered.slice().sort(function (a, b) { return a.order - b.order; });
+    sorted.forEach(function (r) {
+      var hasEvt = !!r.event;
+      var photoUrl = hasEvt && r.event.photos && r.event.photos.length ? r.event.photos[0] : null;
+      var thumbCell = photoUrl
+        ? '<img class="ad-row-thumb" src="' + photoUrl + '" alt="foto" loading="lazy" />'
+        : '<div class="ad-row-thumb-empty">' + (r.type === 'pickup' ? '📤' : '📦') + '</div>';
+
+      var evtStatus = r.event ? r.event.status : null;
+      var statusLbl, statusCol;
+      if (evtStatus === 'undone') { statusLbl = '↺ Anulada'; statusCol = '#6b7280'; }
+      else if (r.status === 'delivered') { statusLbl = '✓ Entregado'; statusCol = 'var(--green-dark)'; }
+      else if (r.status === 'issue') { statusLbl = '⚠ Novedad'; statusCol = '#b45309'; }
+      else if (r.retry) { statusLbl = '🔁 Reintentar'; statusCol = '#b45309'; }
+      else { statusLbl = '○ Pendiente'; statusCol = 'var(--muted)'; }
+
+      var sigBadge = hasEvt && r.event.signed ? ' <span style="font-size:11px;">✍️</span>' : '';
+      var actionBadge = hasEvt ? '<span class="ad-row-action-badge">▶ Ver</span>' : '';
+
+      html += '<tr class="' + (hasEvt ? 'ad-row-clickable' : '') + '" data-ruta-id="' + r.id + '">' +
+        '<td>' + thumbCell + '</td>' +
+        '<td style="font-weight:700;color:var(--muted);">' + r.order + '</td>' +
+        '<td style="font-family:monospace;font-weight:600;">' + (r.guide || '—') + '</td>' +
+        '<td>' + (r.client || '—') + '</td>' +
+        '<td style="color:var(--muted);">' + (r.address || '—') + '</td>' +
+        '<td>' + (r.type === 'pickup' ? '<span style="background:#ede9fe;color:var(--purple);padding:2px 6px;border-radius:6px;font-size:10px;font-weight:700;">📤</span>' : '<span style="color:var(--muted);font-size:11px;">📦</span>') + '</td>' +
+        '<td style="font-weight:700;color:' + statusCol + ';">' + statusLbl + sigBadge + actionBadge + '</td>' +
+      '</tr>';
+    });
+    html += '</tbody></table>';
+    return html;
+  }
+
+  function wireRouteRows() {
+    document.querySelectorAll('#adRoutesTableWrap tr.ad-row-clickable').forEach(function (row) {
+      row.addEventListener('click', function () {
+        var rid = row.getAttribute('data-ruta-id');
+        var route = desktopAdminState.selectedRoutes.find(function (r) { return r.id === rid; });
+        if (route && route.event) openEventDetail(route.event);
+      });
+    });
+  }
+
+  function renderDesktopMessengerDetail(mm) {
+    var main = document.getElementById('adMain');
+    var routes = desktopAdminState.selectedRoutes;
+    var st = mm.stats || {};
+    var pend = routes.filter(function (r) { return r.status === 'pending'; });
+    var del = routes.filter(function (r) { return r.status === 'delivered'; });
+
+    var html = '<div class="ad-detail-card"><div class="ad-detail-header">' +
+      '<div><div class="ad-detail-name">' + mm.name + '</div>' +
+      '<div class="ad-detail-meta">' + mm.code + ' · ' + (mm.zone||'Sin zona') + ' · PIN <strong style="color:var(--ink);font-family:monospace;">' + mm.pin + '</strong></div></div>' +
+      '<div class="ad-detail-actions"><button class="ad-btn secondary" id="adEditBtn">✏️ Editar</button>' +
+      '<button class="ad-btn ' + (mm.active ? 'danger' : 'primary') + '" id="adToggleBtn">' + (mm.active ? '⏸ Deshabilitar' : '▶ Habilitar') + '</button></div></div>' +
+      '<div class="ad-stats-row">' +
+        '<div class="ad-stat"><div class="ad-stat-value">' + routes.length + '</div><div class="ad-stat-label">Rutas</div></div>' +
+        '<div class="ad-stat"><div class="ad-stat-value" style="color:var(--green-dark);">' + del.length + '</div><div class="ad-stat-label">Entregadas</div></div>' +
+        '<div class="ad-stat"><div class="ad-stat-value">' + pend.length + '</div><div class="ad-stat-label">Pendientes</div></div>' +
+        '<div class="ad-stat"><div class="ad-stat-value" style="color:var(--green-dark);">' + (st.signedToday || 0) + '</div><div class="ad-stat-label">Firmas hoy</div></div>' +
+      '</div>' +
+      '<div style="display:flex;gap:10px;flex-wrap:wrap;">' +
+        '<button class="ad-btn accent" id="adAssignCsvBtn">📁 Asignar ruta CSV</button>' +
+        '<button class="ad-btn secondary" id="adRefreshRoutesBtn">🔄 Actualizar</button>' +
+      '</div></div>';
+
+    html += '<div class="ad-section-title"><span>Rutas del mensajero</span><span style="font-weight:600;text-transform:none;color:var(--muted);">' + routes.length + ' totales</span></div>';
+    html += '<div class="ad-routes-toolbar">' +
+      '<input type="text" id="adRoutesSearch" placeholder="🔍 Buscar por cliente, guía, dirección o quién recibió..." value="' + (desktopAdminState.routesFilter || '').replace(/"/g, '&quot;') + '" />' +
+      '<span class="ad-routes-toolbar-count" id="adRoutesCount"></span>' +
+      '</div>';
+    html += '<div id="adRoutesTableWrap">' + renderRoutesTable(routes, desktopAdminState.routesFilter) + '</div>';
+
+    main.innerHTML = html;
+    updateRoutesCount();
+
+    document.getElementById('adEditBtn').addEventListener('click', function () { openEditMessenger(mm); });
+    document.getElementById('adToggleBtn').addEventListener('click', function () {
+      RutaXAPI.adminUpdateMessenger({ code: mm.code, active: !mm.active }).then(function () {
+        mm.active = !mm.active;
+        showToast(mm.active ? '✓ Habilitado' : '⏸ Deshabilitado', 1600);
+        renderDesktopSidebar();
+        renderDesktopMessengerDetail(mm);
+      }).catch(function (err) { showToast('⚠ ' + (err.message || 'Error'), 2400); });
+    });
+    document.getElementById('adAssignCsvBtn').addEventListener('click', function () { openCsvModal(mm); });
+    document.getElementById('adRefreshRoutesBtn').addEventListener('click', function () { loadDesktopMessengerDetail(); showToast('🔄', 1200); });
+
+    var searchInput = document.getElementById('adRoutesSearch');
+    if (searchInput) {
+      searchInput.addEventListener('input', function (e) {
+        desktopAdminState.routesFilter = e.target.value;
+        document.getElementById('adRoutesTableWrap').innerHTML = renderRoutesTable(desktopAdminState.selectedRoutes, e.target.value);
+        wireRouteRows();
+        updateRoutesCount();
+      });
+    }
+    wireRouteRows();
+  }
+
+  function updateRoutesCount() {
+    var el = document.getElementById('adRoutesCount');
+    if (!el) return;
+    var q = normalizeQuery(desktopAdminState.routesFilter || '');
+    var total = desktopAdminState.selectedRoutes.length;
+    if (!q) { el.textContent = total + ' en total'; return; }
+    var filtered = desktopAdminState.selectedRoutes.filter(function (r) {
+      var hay = normalizeQuery([r.client||'', r.guide||'', r.address||'', (r.event && r.event.recipient)||'', (r.event && r.event.note)||''].join(' '));
+      return hay.indexOf(q) >= 0;
+    });
+    el.textContent = filtered.length + ' de ' + total;
+  }
+
+  function renderDesktopLive() {
+    var main = document.getElementById('adMain');
+    main.innerHTML = '<div class="ad-empty"><div class="ad-empty-icon">⏳</div><div>Cargando...</div></div>';
+    var since = desktopAdminState.liveSince;
+    var until = desktopAdminState.liveUntil;
+    if (!since) { var d = new Date(); d.setHours(0,0,0,0); since = d.getTime(); until = since + 86400000; }
+    RutaXAPI.adminLive(since, until).then(function (data) {
+      desktopAdminState.live = data.messengers || [];
+      desktopAdminState.liveSince = data.since; desktopAdminState.liveUntil = data.until;
+      var hoy = new Date(); hoy.setHours(0,0,0,0);
+      var isToday = desktopAdminState.liveSince === hoy.getTime();
+      var html = '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;flex-wrap:wrap;gap:10px;">' +
+        '<div style="font-size:22px;font-weight:800;color:var(--ink);">' + (isToday ? '📅 Hoy' : '📅 Histórico') + '</div>' +
+        '<div style="display:flex;gap:10px;align-items:center;">' +
+        '<input type="date" id="adLiveDate" value="' + formatDateInput(desktopAdminState.liveSince) + '" style="border:1px solid var(--line);border-radius:8px;padding:8px 12px;font-family:inherit;font-size:13px;cursor:pointer;outline:none;" />' +
+        '<button class="ad-btn primary" id="adLiveRefresh">🔄 Refrescar</button></div></div>';
+      if (!desktopAdminState.live.length) {
+        html += '<div class="ad-empty"><div class="ad-empty-icon">📊</div><div>Sin mensajeros activos</div></div>';
+      } else {
+        var now = Date.now();
+        html += '<div class="ad-live-grid">';
+        desktopAdminState.live.forEach(function (m) {
+          var st = m.stats;
+          var pct = st.routeTotal ? Math.round((st.delivered / st.routeTotal) * 100) : 0;
+          var sc = 'st-idle', dot = '🔴';
+          if (st.lastActivity) {
+            var mn = Math.round((now - st.lastActivity) / 60000);
+            if (mn < 30) { sc = 'st-fresh'; dot = '🟢'; }
+            else if (mn < 60) { sc = 'st-paused'; dot = '🟡'; }
+          }
+          html += '<div class="ad-live-card ' + sc + '" data-code="' + m.code + '">' +
+            '<div class="ad-live-head"><div><div class="ad-live-name">' + m.name + '</div><div class="ad-live-zone">' + m.code + ' · ' + (m.zone||'') + '</div></div><div class="ad-live-dot">' + dot + '</div></div>' +
+            '<div class="ad-live-progress"><div class="ad-live-progress-fill" style="width:' + pct + '%"></div></div>' +
+            '<div class="ad-live-text">' + st.delivered + ' de ' + st.routeTotal + ' · ' + pct + '%</div>' +
+            '<div class="ad-live-meta"><span>✍️ <strong>' + st.signed + '</strong></span>' +
+            (st.issues ? '<span style="color:#b45309;">⚠ <strong>' + st.issues + '</strong></span>' : '') +
+            (st.lastActivity ? '<span>🕒 ' + formatTime(st.lastActivity) + '</span>' : '<span>Sin actividad</span>') + '</div></div>';
+        });
+        html += '</div>';
+      }
+      main.innerHTML = html;
+      var di = document.getElementById('adLiveDate');
+      if (di) di.addEventListener('change', function () {
+        var p = di.value.split('-');
+        var dt = new Date(parseInt(p[0],10), parseInt(p[1],10)-1, parseInt(p[2],10));
+        dt.setHours(0,0,0,0);
+        desktopAdminState.liveSince = dt.getTime(); desktopAdminState.liveUntil = desktopAdminState.liveSince + 86400000;
+        renderDesktopLive();
+      });
+      var rf = document.getElementById('adLiveRefresh');
+      if (rf) rf.addEventListener('click', function () { desktopAdminState.liveSince = null; desktopAdminState.liveUntil = null; renderDesktopLive(); });
+      main.querySelectorAll('.ad-live-card').forEach(function (c) {
+        c.addEventListener('click', function () {
+          desktopAdminState.selectedCode = c.getAttribute('data-code');
+          desktopAdminState.activeTab = 'mensajeros';
+          document.querySelectorAll('.ad-tab').forEach(function (t) { t.classList.remove('active'); });
+          document.querySelector('.ad-tab[data-dtab="mensajeros"]').classList.add('active');
+          renderDesktopSidebar();
+          loadDesktopMessengerDetail();
+        });
+      });
+    }).catch(function (err) {
+      main.innerHTML = '<div class="ad-empty"><div class="ad-empty-icon">⚠️</div><div>' + (err.message || 'Error') + '</div></div>';
+    });
+  }
+
+  function openCsvModal(mm) {
+    desktopAdminState.csvTarget = mm.code;
+    desktopAdminState.csvItems = null;
+    desktopAdminState.csvMode = 'append';
+    document.getElementById('adCsvTitle').textContent = 'Asignar ruta a ' + mm.name;
+    document.getElementById('adCsvSubtitle').textContent = mm.code + ' · ' + (mm.zone || 'Sin zona');
+    document.getElementById('adCsvStep1').classList.remove('hidden');
+    document.getElementById('adCsvStep2').classList.add('hidden');
+    document.getElementById('adCsvConfirmBtn').classList.add('hidden');
+    document.getElementById('adCsvFileInput').value = '';
+    document.querySelectorAll('.ad-csv-mode-option').forEach(function (o) { o.classList.remove('active'); });
+    document.querySelector('.ad-csv-mode-option[data-mode="append"]').classList.add('active');
+    document.getElementById('adCsvModal').classList.add('active');
+  }
+  function closeCsvModal() {
+    document.getElementById('adCsvModal').classList.remove('active');
+    desktopAdminState.csvTarget = null;
+    desktopAdminState.csvItems = null;
+  }
+  function handleCsvFile(file) {
+    var rd = new FileReader();
+    rd.onload = function () {
+      try {
+        var items = rowsToItems(parseCSV(rd.result));
+        if (!items.length) { showToast('⚠ Sin filas válidas', 2400); return; }
+        desktopAdminState.csvItems = items;
+        renderCsvPreview(items);
+      } catch (err) { showToast('Error al leer', 2400); }
+    };
+    rd.readAsText(file, 'UTF-8');
+  }
+  function renderCsvPreview(items) {
+    document.getElementById('adCsvStep1').classList.add('hidden');
+    document.getElementById('adCsvStep2').classList.remove('hidden');
+    document.getElementById('adCsvConfirmBtn').classList.remove('hidden');
+    document.getElementById('adCsvCount').textContent = items.length + ' ítem' + (items.length === 1 ? '' : 's') + ' detectado' + (items.length === 1 ? '' : 's');
+    document.getElementById('adCsvPreview').innerHTML = items.slice(0, 50).map(function (it) {
+      var tag = it.type === 'pickup' ? ' · 📤 Recogida' : '';
+      return '<div class="ad-csv-preview-row"><div><span class="g">' + (it.guide||'(sin guía)') + '</span> · ' + (it.client||'Sin cliente') + tag + '</div>' +
+        '<div class="a">' + (it.address||'(sin dirección)') + (it.phone ? ' · ' + it.phone : '') + '</div></div>';
+    }).join('') + (items.length > 50 ? '<div class="ad-csv-preview-row" style="text-align:center;color:var(--muted);">... y ' + (items.length - 50) + ' más</div>' : '');
+  }
+  function confirmCsvUpload() {
+    if (!desktopAdminState.csvItems || !desktopAdminState.csvItems.length) return;
+    if (!desktopAdminState.csvTarget) return;
+    var btn = document.getElementById('adCsvConfirmBtn');
+    btn.disabled = true; btn.textContent = 'Asignando...';
+    RutaXAPI.adminAssignRoute(desktopAdminState.csvTarget, desktopAdminState.csvItems, desktopAdminState.csvMode).then(function (data) {
+      closeCsvModal();
+      showToast('✓ ' + data.added + ' ruta' + (data.added === 1 ? '' : 's') + ' asignada' + (data.added === 1 ? '' : 's'), 3200);
+      loadDesktopMessengerDetail();
+    }).catch(function (err) {
+      showToast('⚠ ' + (err.message || 'Error'), 2800);
+      btn.disabled = false; btn.textContent = 'Asignar ruta';
+    });
+  }
+
+  function setupDesktopAdminEvents() {
+    document.getElementById('adminDesktopBtn').addEventListener('click', openAdminDesktop);
+    document.getElementById('desktopBackMobile').addEventListener('click', function () {
+      closeAdminDesktop();
+      document.getElementById('adminOverlay').classList.add('active');
+      refreshAdminMensajeros();
+    });
+    document.getElementById('desktopLogoutBtn').addEventListener('click', function () { closeAdminDesktop(); adminLogout(); });
+    document.querySelectorAll('.ad-tab').forEach(function (t) {
+      t.addEventListener('click', function () {
+        document.querySelectorAll('.ad-tab').forEach(function (x) { x.classList.remove('active'); });
+        t.classList.add('active');
+        desktopAdminState.activeTab = t.getAttribute('data-dtab');
+        if (desktopAdminState.activeTab === 'mensajeros') renderDesktopMain();
+        else { desktopAdminState.liveSince = null; desktopAdminState.liveUntil = null; renderDesktopMain(); }
+      });
+    });
+    document.getElementById('adSearchInput').addEventListener('input', function (e) {
+      desktopAdminState.filter = e.target.value;
+      renderDesktopSidebar();
+    });
+    var fi = document.getElementById('adCsvFileInput');
+    document.getElementById('adCsvDropzone').addEventListener('click', function () { fi.click(); });
+    fi.addEventListener('change', function (e) {
+      var f = e.target.files && e.target.files[0];
+      if (f) handleCsvFile(f);
+    });
+    document.getElementById('adCsvCloseBtn').addEventListener('click', closeCsvModal);
+    document.getElementById('adCsvCancelBtn').addEventListener('click', closeCsvModal);
+    document.getElementById('adCsvConfirmBtn').addEventListener('click', confirmCsvUpload);
+    document.getElementById('adCsvChangeFile').addEventListener('click', function () {
+      document.getElementById('adCsvStep1').classList.remove('hidden');
+      document.getElementById('adCsvStep2').classList.add('hidden');
+      document.getElementById('adCsvConfirmBtn').classList.add('hidden');
+      fi.value = ''; fi.click();
+    });
+    document.querySelectorAll('.ad-csv-mode-option').forEach(function (o) {
+      o.addEventListener('click', function () {
+        document.querySelectorAll('.ad-csv-mode-option').forEach(function (x) { x.classList.remove('active'); });
+        o.classList.add('active');
+        desktopAdminState.csvMode = o.getAttribute('data-mode');
+      });
+    });
+    document.getElementById('adCsvModal').addEventListener('click', function (e) {
+      if (e.target.id === 'adCsvModal') closeCsvModal();
+    });
+  }
+
+  function init() {
+    try {
+      setupPhotoInput();
+      setupEventListeners();
+      setupAdminEvents();
+      setupDesktopAdminEvents();
+      document.getElementById('pinBackBtn').addEventListener('click', closePinModal);
+      RutaXAPI.publicList().then(renderSplashFromAPI).catch(function () { renderSplash(); });
+      var saved = localStorage.getItem('rutax_current_v8');
+      if (saved && RutaXAPI.isLoggedIn()) {
+        RutaXAPI.pull().then(function (data) {
+          if (data.role !== 'messenger' && data.role !== 'admin') throw new Error('rol');
+          var info = null;
+          var raw = localStorage.getItem('rutax_info_' + saved);
+          if (raw) { try { info = JSON.parse(raw); } catch (e) {} }
+          if (!info && saved === 'ADMIN') info = { code: 'ADMIN', name: 'Administrador', zone: 'Administración' };
+          if (!info) throw new Error('sin info');
+          state.messenger = info;
+          if (data.role === 'admin') {
+            hideSplash();
+            if (isDesktopViewport()) openAdminDesktop();
+            else openAdminPanel();
+            return;
+          }
+          state.route = data.route || [];
+          state.events = mergeLocalPhotos(data.events || []);
+          state.settings = Object.assign({}, DEFAULT_SETTINGS, data.settings || {});
+          state.route.forEach(function (p) { if (!p.status) p.status = 'pending'; if (!p.type) p.type = 'delivery'; });
+          state.events.forEach(function (e) { if (!e.messengerName || e.messengerName === info.code) e.messengerName = info.name; });
+          saveMessengerData();
+          renderHeader(); renderRoute(); renderEvents(); hideSplash(); updateFabVisibility();
+        }).catch(function (err) { console.warn('Auto-login:', err); showSplash(); });
+      } else showSplash();
+    } catch (e) { console.error('Init error:', e); }
+  }
+  document.addEventListener('DOMContentLoaded', init);
+})();
+</script>
+</body>
+</html>
