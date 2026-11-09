@@ -6,7 +6,7 @@
 <meta name="theme-color" content="#0A1F44">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<title>Ruta X · Mensajero · España</title>
+<title>Ruta X · Mensajero</title>
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
 <style>
   :root {
@@ -1020,7 +1020,6 @@
 (function () {
   'use strict';
 
-  var GEOCODE_COUNTRY = 'España';
   var MAX_PINS_ON_MAP = 15;
   var NOMINATIM_DELAY_MS = 1100;
   var GEOCODE_CACHE_KEY = 'rutax_geocode_es_v1';
@@ -1346,7 +1345,9 @@
   function geocodeAddress(address) {
     var cache = getGeoCache(); var key = address.toLowerCase().trim();
     if (cache[key] && (Date.now() - cache[key].ts) < GEOCODE_CACHE_TTL_MS) return Promise.resolve({ lat: cache[key].lat, lng: cache[key].lng, cached: true });
-    var q = address + (address.toLowerCase().indexOf(GEOCODE_COUNTRY.toLowerCase()) >= 0 ? '' : ', ' + GEOCODE_COUNTRY);
+    
+    // Ya no forzamos el país, busca la dirección literal.
+    var q = address;
     
     // 1. Intentar con Photon (Komoot) - Mucho más rápido y sin límites estrictos
     var photonUrl = 'https://photon.komoot.io/api/?q=' + encodeURIComponent(q) + '&limit=1&lang=es';
@@ -1359,7 +1360,7 @@
       .then(function(data) {
         if (data && data.features && data.features.length > 0) {
           var coords = data.features[0].geometry.coordinates;
-          var res = { lat: coords[1], lng: coords[0] };
+          var res = { lat: coords[1], lng: coords[0], cached: false };
           cache[key] = { lat: res.lat, lng: res.lng, ts: Date.now() }; saveGeoCache(cache);
           return res;
         }
@@ -1373,7 +1374,7 @@
           .then(function(r) { if (!r.ok) throw new Error('Nominatim HTTP ' + r.status); return r.json(); })
           .then(function(data2) {
             if (!data2 || !data2.length) throw new Error('Dirección no encontrada');
-            var res = { lat: parseFloat(data2[0].lat), lng: parseFloat(data2[0].lon) };
+            var res = { lat: parseFloat(data2[0].lat), lng: parseFloat(data2[0].lon), cached: false };
             cache[key] = { lat: res.lat, lng: res.lng, ts: Date.now() }; saveGeoCache(cache);
             return res;
           });
@@ -1396,9 +1397,17 @@
         txt.textContent = 'Geolocalizando direcciones...';
         for (var i = 0; i < toGeo.length; i++) {
           sub.textContent = (i + 1) + ' de ' + toGeo.length + ' · ' + toGeo[i].address.substring(0, 40);
-          try { var c = await geocodeAddress(toGeo[i].address); toGeo[i].lat = c.lat; toGeo[i].lng = c.lng; geocodedOk++; }
-          catch (e) { geocodedFail++; console.warn('Geocode fail:', toGeo[i].address, e); }
-          if (i < toGeo.length - 1) await sleep(c.cached ? 50 : NOMINATIM_DELAY_MS);
+          var c = null;
+          try { 
+            c = await geocodeAddress(toGeo[i].address); 
+            toGeo[i].lat = c.lat; 
+            toGeo[i].lng = c.lng; 
+            geocodedOk++; 
+          } catch (e) { 
+            geocodedFail++; 
+            console.warn('Geocode fail:', toGeo[i].address, e); 
+          }
+          if (i < toGeo.length - 1) await sleep((c && c.cached) ? 50 : NOMINATIM_DELAY_MS);
         }
       }
       var withCoords = pending.filter(function (p) { return typeof p.lat === 'number' && typeof p.lng === 'number'; });
