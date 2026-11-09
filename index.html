@@ -13,7 +13,6 @@
     --navy-deep:#0A1F44;--navy:#0E3A6C;--navy-light:#1E5BB8;--accent:#FF6B35;
     --ink:#1f2937;--muted:#6b7280;--line:#e5e7eb;--bg:#f4f6fa;
     --green:#22c55e;--green-dark:#16a34a;--wa:#25D366;--purple:#8b5cf6;
-    --es-red:#C60B1E;--es-yellow:#FFC400;
   }
   *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
   body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:var(--bg);color:var(--ink);min-height:100vh;-webkit-font-smoothing:antialiased;}
@@ -789,6 +788,15 @@
           </div>
         </div>
       </div>
+      
+      <!-- NUEVO AJUSTE: Región de búsqueda -->
+      <div class="settings-section">
+        <h3>🌍 Geocodificación</h3>
+        <p>Ayuda al mapa a encontrar tus direcciones limitando la búsqueda a un país o ciudad específica. Déjalo en blanco para buscar en todo el mundo.</p>
+        <input type="text" id="geocodeCountryInput" class="add-text-input" placeholder="Ej: España, Colombia, Madrid..." autocomplete="off" style="margin-bottom:0;" />
+        <button class="settings-btn primary" id="saveGeocodeBtn" style="margin-top:10px;">Guardar región</button>
+      </div>
+
       <div class="settings-section">
         <h3>📁 Cargar ruta desde archivo</h3>
         <p>Sube un CSV. Opcional: columnas <code>lat</code> y <code>lng</code> para saltar la geocodificación.</p>
@@ -813,7 +821,7 @@
         <p>Borra tus registros. Solo afecta a tu usuario.</p>
         <button class="settings-btn danger" id="resetRouteBtn">Reiniciar mis datos</button>
       </div>
-      <div class="app-version">Ruta X · v0.18 · Doble Geocoder</div>
+      <div class="app-version">Ruta X · v0.19 · Geocodificación Mejorada</div>
     </div>
   </div>
 </div>
@@ -1027,7 +1035,7 @@
 
   var CURRENT_KEY = 'rutax_current_v10';
   function dataKey(code, type) { return 'rutax_' + code + '_' + type + '_v10'; }
-  var DEFAULT_SETTINGS = { requireRecipient: false, allowNoPhoto: false, promptWhatsApp: true, requireSignature: true, signatureColor: '#a3e635' };
+  var DEFAULT_SETTINGS = { requireRecipient: false, allowNoPhoto: false, promptWhatsApp: true, requireSignature: true, signatureColor: '#a3e635', geocodeCountry: '' };
 
   var state = { messenger: null, route: [], events: [], settings: Object.assign({}, DEFAULT_SETTINGS) };
   var currentPackage = null, currentPhotos = [], currentPhotoIndex = 0, currentNoPhoto = false;
@@ -1346,10 +1354,11 @@
     var cache = getGeoCache(); var key = address.toLowerCase().trim();
     if (cache[key] && (Date.now() - cache[key].ts) < GEOCODE_CACHE_TTL_MS) return Promise.resolve({ lat: cache[key].lat, lng: cache[key].lng, cached: true });
     
-    // Ya no forzamos el país, busca la dirección literal.
-    var q = address;
+    // Obtenemos el país/región desde los ajustes
+    var country = state.settings.geocodeCountry ? state.settings.geocodeCountry.trim() : '';
+    var q = address + (country ? ', ' + country : '');
     
-    // 1. Intentar con Photon (Komoot) - Mucho más rápido y sin límites estrictos
+    // 1. Intentar con Photon (Komoot)
     var photonUrl = 'https://photon.komoot.io/api/?q=' + encodeURIComponent(q) + '&limit=1&lang=es';
     
     return fetch(photonUrl)
@@ -1722,8 +1731,15 @@
   function openSearch() { document.getElementById('searchOverlay').classList.add('active'); var i = document.getElementById('searchInput'); i.value = ''; document.getElementById('searchClearBtn').classList.remove('visible'); renderSearchResults(''); setTimeout(function () { i.focus(); }, 100); }
   function closeSearch() { document.getElementById('searchOverlay').classList.remove('active'); }
 
-  function openSettings() { document.getElementById('settingsAccountText').textContent = 'Estás como: ' + state.messenger.name + ' (' + state.messenger.code + ') · ' + state.messenger.zone; document.getElementById('csvPreviewBox').classList.add('hidden'); pendingCSVItems = null; updateTogglesUI(); document.getElementById('settingsOverlay').classList.add('active'); }
+  function openSettings() { 
+    document.getElementById('settingsAccountText').textContent = 'Estás como: ' + state.messenger.name + ' (' + state.messenger.code + ') · ' + state.messenger.zone; 
+    document.getElementById('csvPreviewBox').classList.add('hidden'); 
+    pendingCSVItems = null; updateTogglesUI(); 
+    document.getElementById('geocodeCountryInput').value = state.settings.geocodeCountry || '';
+    document.getElementById('settingsOverlay').classList.add('active'); 
+  }
   function closeSettings() { document.getElementById('settingsOverlay').classList.remove('active'); }
+  
   function updateTogglesUI() {
     document.getElementById('toggleRecipient').classList.toggle('on', state.settings.requireRecipient);
     document.getElementById('toggleNoPhoto').classList.toggle('on', state.settings.allowNoPhoto);
@@ -1794,6 +1810,15 @@
     document.getElementById('eventBackBtn').addEventListener('click', closeEventDetail);
     document.getElementById('settingsBtn').addEventListener('click', openSettings);
     document.getElementById('settingsBackBtn').addEventListener('click', closeSettings);
+    
+    // Save geocode setting
+    document.getElementById('saveGeocodeBtn').addEventListener('click', function() {
+      state.settings.geocodeCountry = document.getElementById('geocodeCountryInput').value.trim();
+      saveMessengerData();
+      RutaXAPI.saveSettings(state.settings).catch(function(){});
+      showToast('✓ Región guardada', 1800);
+    });
+
     [['toggleRecipient','requireRecipient'],['toggleNoPhoto','allowNoPhoto'],['toggleWhatsApp','promptWhatsApp'],['toggleSignature','requireSignature']].forEach(function (a) {
       var el = document.getElementById(a[0]); if (el) el.addEventListener('click', function () { state.settings[a[1]] = !state.settings[a[1]]; saveMessengerData(); updateTogglesUI(); showToast(state.settings[a[1]] ? 'Ajuste activado' : 'Ajuste desactivado', 1600); RutaXAPI.saveSettings(state.settings).catch(function () {}); });
     });
