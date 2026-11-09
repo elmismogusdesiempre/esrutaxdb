@@ -6,12 +6,14 @@
 <meta name="theme-color" content="#0A1F44">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<title>Ruta X · Mensajero</title>
+<title>Ruta X · Mensajero · España</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
 <style>
   :root {
     --navy-deep:#0A1F44;--navy:#0E3A6C;--navy-light:#1E5BB8;--accent:#FF6B35;
     --ink:#1f2937;--muted:#6b7280;--line:#e5e7eb;--bg:#f4f6fa;
     --green:#22c55e;--green-dark:#16a34a;--wa:#25D366;--purple:#8b5cf6;
+    --es-red:#C60B1E;--es-yellow:#FFC400;
   }
   *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
   body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:var(--bg);color:var(--ink);min-height:100vh;-webkit-font-smoothing:antialiased;}
@@ -26,6 +28,7 @@
   .wordmark{display:flex;align-items:baseline;gap:3px;line-height:1;letter-spacing:-0.3px;}
   .wm-ruta{color:#fff;font-weight:600;font-size:19px;}
   .wm-x{color:var(--accent);font-weight:800;font-size:22px;}
+  .wm-flag{font-size:15px;margin-left:5px;filter:drop-shadow(0 1px 2px rgba(0,0,0,0.3));}
   .icon-btn{background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.15);color:rgba(255,255,255,0.9);width:38px;height:38px;border-radius:10px;font-size:18px;cursor:pointer;transition:background 0.15s;display:flex;align-items:center;justify-content:center;}
   .icon-btn:active{background:rgba(255,255,255,0.2);}
   .messenger-bar{display:flex;align-items:center;gap:12px;padding:10px 12px;background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.1);border-radius:12px;margin-bottom:12px;}
@@ -51,6 +54,35 @@
   .view{display:none;padding:16px;}
   .view.active{display:block;}
 
+  /* ============================================================ */
+  /* MAPA Y OPTIMIZACIÓN                                           */
+  /* ============================================================ */
+  .map-section{background:white;border-radius:14px;margin-bottom:14px;overflow:hidden;box-shadow:0 1px 3px rgba(15,23,42,0.06);position:relative;}
+  .map-header{display:flex;justify-content:space-between;align-items:center;padding:12px 14px;border-bottom:1px solid var(--line);gap:10px;}
+  .map-header-info{flex:1;min-width:0;}
+  .map-header-title{font-size:13px;font-weight:700;color:var(--ink);display:flex;align-items:center;gap:6px;}
+  .map-header-sub{font-size:11px;color:var(--muted);margin-top:3px;}
+  .optimize-btn{background:var(--accent);color:white;border:none;padding:10px 14px;border-radius:10px;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;box-shadow:0 2px 8px rgba(255,107,53,0.3);display:flex;align-items:center;gap:6px;transition:transform 0.1s;white-space:nowrap;flex-shrink:0;}
+  .optimize-btn:active:not(:disabled){transform:scale(0.97);}
+  .optimize-btn:disabled{opacity:0.55;cursor:not-allowed;}
+  .map-container{height:280px;width:100%;background:#eef2f7;position:relative;z-index:1;}
+  .map-container .map-empty{display:flex;align-items:center;justify-content:center;height:100%;flex-direction:column;gap:8px;color:#9ca3af;font-size:13px;text-align:center;padding:20px;}
+  .map-container .map-empty-icon{font-size:38px;opacity:0.4;}
+  .optimization-progress{position:absolute;inset:0;background:rgba(10,31,68,0.92);display:flex;flex-direction:column;align-items:center;justify-content:center;color:white;z-index:10;padding:20px;text-align:center;}
+  .optimization-progress .spinner{width:44px;height:44px;border:4px solid rgba(255,255,255,0.2);border-top-color:var(--accent);border-radius:50%;animation:spin 0.9s linear infinite;margin-bottom:16px;}
+  .optimization-progress .op-text{font-size:14px;font-weight:700;margin-bottom:4px;}
+  .optimization-progress .op-sub{font-size:12px;opacity:0.75;line-height:1.4;max-width:280px;}
+
+  .map-pin{background:var(--accent);color:white;border-radius:50%;width:28px;height:28px;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:800;box-shadow:0 2px 6px rgba(0,0,0,0.3);border:2px solid white;font-family:-apple-system,BlinkMacSystemFont,sans-serif;}
+  .map-pin.user{background:var(--navy);font-size:15px;border-color:#3b82f6;}
+
+  .leaflet-container{font-family:inherit;}
+  .leaflet-popup-content-wrapper{border-radius:8px;font-size:13px;}
+  .leaflet-popup-content{margin:10px 12px;font-family:inherit;}
+
+  /* ============================================================ */
+  /* Resto del CSS (sin cambios)                                   */
+  /* ============================================================ */
   .route-list{display:flex;flex-direction:column;gap:12px;}
   .package-card{background:white;border-radius:14px;padding:14px;display:flex;align-items:center;gap:12px;box-shadow:0 1px 3px rgba(15,23,42,0.06);cursor:pointer;transition:transform 0.1s;border-left:4px solid #d1d5db;}
   .package-card:active{transform:scale(0.98);}
@@ -99,6 +131,7 @@
   .splash-brand .logo-mark{width:52px;height:52px;}
   .splash-brand .wm-ruta{font-size:26px;}
   .splash-brand .wm-x{font-size:30px;}
+  .splash-brand .wm-flag{font-size:22px;margin-left:8px;}
   .splash-title{font-size:22px;font-weight:800;margin-bottom:6px;line-height:1.2;}
   .splash-subtitle{font-size:14px;opacity:0.75;margin-bottom:28px;line-height:1.4;}
   .messenger-options{display:flex;flex-direction:column;gap:10px;}
@@ -534,14 +567,7 @@
 
   @media (min-width: 1024px) {
     #eventOverlay { overflow: hidden; }
-    #eventOverlay .event-detail-screen {
-      max-width: 100%; width: 100%; height: 100vh;
-      display: grid;
-      grid-template-columns: minmax(0, 1fr) 480px;
-      grid-template-rows: 68px 1fr;
-      grid-template-areas: "header header" "carousel body";
-      background: #0f172a;
-    }
+    #eventOverlay .event-detail-screen { max-width: 100%; width: 100%; height: 100vh; display: grid; grid-template-columns: minmax(0, 1fr) 480px; grid-template-rows: 68px 1fr; grid-template-areas: "header header" "carousel body"; background: #0f172a; }
     #eventOverlay .detail-header { grid-area: header; padding: 0 28px; height: 68px; box-sizing: border-box; }
     #eventOverlay .detail-header .detail-title { font-size: 18px; }
     #eventOverlay .detail-header .detail-sub { font-size: 13px; }
@@ -557,12 +583,12 @@
     #eventOverlay .event-detail-body::-webkit-scrollbar { width: 8px; }
     #eventOverlay .event-detail-body::-webkit-scrollbar-track { background: #e5e7eb; }
     #eventOverlay .event-detail-body::-webkit-scrollbar-thumb { background: #94a3b8; border-radius: 4px; }
-
     #undoOverlay { align-items: center; }
     #undoOverlay .whatsapp-sheet { max-width: 560px; border-radius: 16px; max-height: 85vh; }
   }
 </style>
 <script src="api.js"></script>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 </head>
 <body>
 
@@ -578,7 +604,7 @@
           <circle cx="13" cy="27" r="1.9" fill="#FF6B35"/><circle cx="27" cy="27" r="1.9" fill="#FF6B35"/>
         </svg>
       </span>
-      <span class="wordmark"><span class="wm-ruta">Ruta</span><span class="wm-x">X</span></span>
+      <span class="wordmark"><span class="wm-ruta">Ruta</span><span class="wm-x">X</span><span class="wm-flag">🇪🇸</span></span>
     </div>
     <div class="splash-title">Bienvenido a tu ruta</div>
     <div class="splash-subtitle">Elige quién eres para empezar.</div>
@@ -602,7 +628,7 @@
             <circle cx="13" cy="27" r="1.9" fill="#FF6B35"/><circle cx="27" cy="27" r="1.9" fill="#FF6B35"/>
           </svg>
         </span>
-        <span class="wordmark"><span class="wm-ruta">Ruta</span><span class="wm-x">X</span></span>
+        <span class="wordmark"><span class="wm-ruta">Ruta</span><span class="wm-x">X</span><span class="wm-flag">🇪🇸</span></span>
       </div>
       <button class="icon-btn" id="settingsBtn" title="Ajustes" aria-label="Ajustes">⚙</button>
     </div>
@@ -628,7 +654,24 @@
       <button class="tab" data-tab="registro">📋 Registro</button>
     </nav>
   </div>
-  <main id="viewRuta" class="view active"><div id="routeList" class="route-list"></div></main>
+  <main id="viewRuta" class="view active">
+    <div class="map-section">
+      <div class="map-header">
+        <div class="map-header-info">
+          <div class="map-header-title">🗺️ Mapa de ruta</div>
+          <div class="map-header-sub" id="mapSubtitle">Próximas 15 paradas</div>
+        </div>
+        <button class="optimize-btn" id="optimizeBtn">🎯 Optimizar</button>
+      </div>
+      <div class="map-container" id="routeMap"></div>
+      <div class="optimization-progress hidden" id="optimizeProgress">
+        <div class="spinner"></div>
+        <div class="op-text" id="optimizeText">Optimizando...</div>
+        <div class="op-sub" id="optimizeSubtext"></div>
+      </div>
+    </div>
+    <div id="routeList" class="route-list"></div>
+  </main>
   <main id="viewRegistro" class="view"><div id="eventsTable"></div></main>
   <button class="fab" id="addManualFab" title="Agregar a la ruta">+</button>
 </div>
@@ -750,8 +793,8 @@
       </div>
       <div class="settings-section">
         <h3>📁 Cargar ruta desde archivo</h3>
-        <p>Sube un CSV para agregar destinos al final de tu ruta.</p>
-        <span class="csv-info-badge">Formato: guia, cliente, direccion, telefono, tipo</span>
+        <p>Sube un CSV. Opcional: columnas <code>lat</code> y <code>lng</code> para saltar la geocodificación.</p>
+        <span class="csv-info-badge">guia, cliente, direccion, telefono, tipo, lat, lng</span>
         <button class="settings-btn primary" id="csvSelectBtn">Seleccionar archivo CSV</button>
         <input type="file" id="csvInput" accept=".csv,text/csv,text/plain" class="hidden" />
         <div id="csvPreviewBox" class="hidden">
@@ -772,7 +815,7 @@
         <p>Borra tus registros. Solo afecta a tu usuario.</p>
         <button class="settings-btn danger" id="resetRouteBtn">Reiniciar mis datos</button>
       </div>
-      <div class="app-version">Ruta X · v0.15 · Anulación de entrega</div>
+      <div class="app-version">Ruta X · v0.16 · Optimización de ruta + Mapa OSM · España</div>
     </div>
   </div>
 </div>
@@ -809,7 +852,7 @@
     <label class="add-form-label">Dirección *</label>
     <input type="text" id="addAddress" class="add-text-input" placeholder="Dirección de la visita" autocomplete="off" />
     <label class="add-form-label">Teléfono (opcional)</label>
-    <input type="tel" id="addPhone" class="add-text-input" placeholder="Ej: 310 555 0101" autocomplete="off" />
+    <input type="tel" id="addPhone" class="add-text-input" placeholder="Ej: +34 612 345 601" autocomplete="off" />
     <label class="add-form-label">Guía (opcional)</label>
     <input type="text" id="addGuide" class="add-text-input" placeholder="Número de guía" autocomplete="off" />
     <label class="add-form-label">Nota (opcional)</label>
@@ -845,7 +888,7 @@
       <input type="text" id="undoCustomReason" class="add-text-input" placeholder="Describe el motivo..." autocomplete="off" maxlength="200" />
     </div>
     <div style="background:#fffbeb;border:1px solid #fef3c7;border-radius:10px;padding:12px;margin-top:16px;font-size:12px;color:#92400e;line-height:1.5;">
-      <strong>⚠ Importante:</strong> Si ya enviaste el WhatsApp al cliente, seguirá viendo el mensaje anterior. La anulación solo aplica al sistema interno.
+      <strong>⚠ Importante:</strong> Si ya enviaste el WhatsApp al cliente, seguirá viendo el mensaje anterior.
     </div>
     <div class="add-form-actions" style="margin-top:16px;">
       <button class="add-form-btn cancel" id="undoCancelBtn">Cancelar</button>
@@ -887,7 +930,7 @@
     <label class="add-form-label">Nombre *</label>
     <input type="text" id="editMsName" class="add-text-input" placeholder="Ej: Juan Pérez" autocomplete="off" />
     <label class="add-form-label">Zona</label>
-    <input type="text" id="editMsZone" class="add-text-input" placeholder="Ej: Ruta Sur" autocomplete="off" />
+    <input type="text" id="editMsZone" class="add-text-input" placeholder="Ej: Madrid Centro" autocomplete="off" />
     <label class="add-form-label">PIN (4 dígitos)</label>
     <input type="tel" id="editMsPin" class="add-text-input" placeholder="1234" maxlength="4" inputmode="numeric" autocomplete="off" />
     <div class="add-form-actions">
@@ -899,7 +942,7 @@
 
 <div id="adminDesktopOverlay" class="admin-desktop-overlay">
   <div class="ad-topbar">
-    <div class="ad-brand"><span style="color:var(--accent);">◈</span> Ruta X <span class="x">Admin</span></div>
+    <div class="ad-brand"><span style="color:var(--accent);">◈</span> Ruta X <span class="x">Admin</span> <span style="font-size:18px;">🇪🇸</span></div>
     <nav class="ad-tabs">
       <button class="ad-tab active" data-dtab="mensajeros">👥 Mensajeros</button>
       <button class="ad-tab" data-dtab="vivo">📊 En vivo</button>
@@ -929,7 +972,7 @@
         <div class="ad-csv-dropzone" id="adCsvDropzone">
           <div style="font-size:48px;margin-bottom:12px;">📁</div>
           <div style="font-weight:700;color:var(--ink);margin-bottom:4px;font-size:15px;">Haz clic para elegir un archivo CSV</div>
-          <div style="font-size:12px;color:var(--muted);">Formato: guia, cliente, direccion, telefono, tipo</div>
+          <div style="font-size:12px;color:var(--muted);">Formato: guia, cliente, direccion, telefono, tipo, lat, lng</div>
         </div>
         <input type="file" id="adCsvFileInput" accept=".csv,text/csv,text/plain" style="display:none" />
       </div>
@@ -976,6 +1019,15 @@
 (function () {
   'use strict';
 
+  // ============================================================
+  // Configuración
+  // ============================================================
+  var GEOCODE_COUNTRY = 'España';        // país para Nominatim
+  var MAX_PINS_ON_MAP = 15;              // solo mostramos las próximas 15
+  var NOMINATIM_DELAY_MS = 1100;         // rate limit (política Nominatim: 1/seg)
+  var GEOCODE_CACHE_KEY = 'rutax_geocode_es_v1';
+  var GEOCODE_CACHE_TTL_MS = 30 * 24 * 60 * 60 * 1000; // 30 días
+
   var CURRENT_KEY = 'rutax_current_v10';
   function dataKey(code, type) { return 'rutax_' + code + '_' + type + '_v10'; }
   var DEFAULT_SETTINGS = { requireRecipient: false, allowNoPhoto: false, promptWhatsApp: true, requireSignature: true, signatureColor: '#a3e635' };
@@ -995,6 +1047,8 @@
     csvTarget: null, csvItems: null, csvMode: 'append'
   };
   var undoState = { evt: null, reason: null };
+  var routeMapInstance = null, routeMapLayer = null;
+  var isOptimizing = false;
 
   var MAX_EVENTS_WITH_LOCAL_PHOTOS = 8;
   var UNDO_WINDOW_MS = 60 * 60 * 1000;
@@ -1113,6 +1167,9 @@
   }
   function getSignatureColorHex() { return state.settings.signatureColor || '#a3e635'; }
 
+  // ============================================================
+  // Firma
+  // ============================================================
   function setupSignatureCanvas() {
     var canvas = document.getElementById('signatureCanvas');
     var wrap = document.getElementById('signatureWrap');
@@ -1254,12 +1311,17 @@
   }
   function hideProcessing() { document.getElementById('processingOverlay').classList.remove('active'); }
 
+  // ============================================================
+  // WhatsApp
+  // ============================================================
   function normalizePhone(p) {
     if (!p) return '';
     p = String(p).replace(/[^\d]/g, '');
     if (!p) return '';
-    if (p.indexOf('57') === 0 && p.length >= 12) return p;
-    if (p.length === 10) return '57' + p;
+    if (p.indexOf('34') === 0 && p.length >= 11) return p;   // +34 España
+    if (p.indexOf('57') === 0 && p.length >= 12) return p;   // +57 Colombia
+    if (p.length === 9) return '34' + p;                     // fijo/móvil España
+    if (p.length === 10) return '57' + p;                    // móvil Colombia
     return p;
   }
 
@@ -1341,6 +1403,9 @@
     pendingWhatsAppEvent = null;
   }
 
+  // ============================================================
+  // Splash
+  // ============================================================
   function renderSplash() {
     document.getElementById('messengerOptions').innerHTML = '<div style="text-align:center;padding:22px;color:#fff;opacity:.75;font-size:14px;">Sin conexión al servidor</div>';
   }
@@ -1420,8 +1485,263 @@
     var done = state.route.filter(function (p) { return p.status === 'delivered'; }).length;
     document.getElementById('progressText').textContent = done + ' de ' + state.route.length + ' entregados';
     document.getElementById('progressFill').style.width = ((done / (state.route.length || 1)) * 100) + '%';
+    renderMap();
   }
 
+  // ============================================================
+  // MAPA · Leaflet + OpenStreetMap
+  // ============================================================
+  function renderMap() {
+    var container = document.getElementById('routeMap');
+    if (!container) return;
+
+    if (typeof L === 'undefined') {
+      container.innerHTML = '<div class="map-empty"><div class="map-empty-icon">🗺️</div><div>El mapa no está disponible<br><span style="font-size:11px;">Comprueba tu conexión</span></div></div>';
+      return;
+    }
+
+    var pending = state.route
+      .filter(function (p) { return p.status !== 'delivered' && typeof p.lat === 'number' && typeof p.lng === 'number'; })
+      .sort(function (a, b) { return (a.order || 0) - (b.order || 0); })
+      .slice(0, MAX_PINS_ON_MAP);
+
+    var subtitle = document.getElementById('mapSubtitle');
+    if (subtitle) {
+      var totalPend = state.route.filter(function (p) { return p.status !== 'delivered'; }).length;
+      var withCoords = state.route.filter(function (p) { return p.status !== 'delivered' && typeof p.lat === 'number'; }).length;
+      if (!pending.length) subtitle.textContent = totalPend ? 'Sin coordenadas aún · toca Optimizar' : 'Sin paradas pendientes';
+      else if (totalPend > pending.length) subtitle.textContent = 'Próximas ' + pending.length + ' de ' + totalPend + ' paradas';
+      else subtitle.textContent = 'Próximas ' + pending.length + ' paradas';
+    }
+
+    if (!pending.length) {
+      if (routeMapInstance) { routeMapInstance.remove(); routeMapInstance = null; routeMapLayer = null; }
+      container.innerHTML = '<div class="map-empty"><div class="map-empty-icon">🗺️</div><div>Sin coordenadas aún<br><span style="font-size:11px;">Toca "Optimizar" para geolocalizar</span></div></div>';
+      return;
+    }
+
+    if (!routeMapInstance) {
+      container.innerHTML = '';
+      routeMapInstance = L.map(container, { zoomControl: true, attributionControl: false });
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        maxZoom: 19,
+        attribution: '© OpenStreetMap'
+      }).addTo(routeMapInstance);
+    }
+
+    if (routeMapLayer) routeMapInstance.removeLayer(routeMapLayer);
+    routeMapLayer = L.layerGroup().addTo(routeMapInstance);
+
+    var latlngs = [];
+    pending.forEach(function (p, idx) {
+      var icon = L.divIcon({
+        className: '',
+        html: '<div class="map-pin">' + (idx + 1) + '</div>',
+        iconSize: [28, 28],
+        iconAnchor: [14, 14]
+      });
+      var mk = L.marker([p.lat, p.lng], { icon: icon });
+      mk.bindPopup('<b>' + (idx + 1) + '. ' + p.client + '</b><br>' + p.address);
+      mk.addTo(routeMapLayer);
+      latlngs.push([p.lat, p.lng]);
+    });
+
+    if (currentGPS && typeof currentGPS.lat === 'number') {
+      var ui = L.divIcon({
+        className: '',
+        html: '<div class="map-pin user">◉</div>',
+        iconSize: [28, 28],
+        iconAnchor: [14, 14]
+      });
+      L.marker([currentGPS.lat, currentGPS.lng], { icon: ui })
+        .bindPopup('<b>Tu ubicación</b>')
+        .addTo(routeMapLayer);
+      latlngs.unshift([currentGPS.lat, currentGPS.lng]);
+    }
+
+    if (latlngs.length > 1) {
+      L.polyline(latlngs, { color: '#FF6B35', weight: 3, opacity: 0.75, dashArray: '6,6' })
+        .addTo(routeMapLayer);
+    }
+
+    try {
+      routeMapInstance.fitBounds(L.latLngBounds(latlngs), { padding: [30, 30], maxZoom: 15 });
+      setTimeout(function () { if (routeMapInstance) routeMapInstance.invalidateSize(); }, 120);
+    } catch (e) {}
+  }
+
+  // ============================================================
+  // OPTIMIZACIÓN · Haversine + Nearest Neighbor + 2-opt
+  // ============================================================
+  function haversine(lat1, lng1, lat2, lng2) {
+    var R = 6371;
+    var dLat = (lat2 - lat1) * Math.PI / 180;
+    var dLng = (lng2 - lng1) * Math.PI / 180;
+    var a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+            Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+            Math.sin(dLng/2) * Math.sin(dLng/2);
+    return 2 * R * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+  }
+
+  function nearestNeighbor(stops, origin) {
+    if (!stops.length) return [];
+    var remaining = stops.slice();
+    var result = [];
+    var cur = origin;
+    while (remaining.length) {
+      var bestIdx = 0, bestDist = Infinity;
+      for (var i = 0; i < remaining.length; i++) {
+        var d = haversine(cur.lat, cur.lng, remaining[i].lat, remaining[i].lng);
+        if (d < bestDist) { bestDist = d; bestIdx = i; }
+      }
+      var chosen = remaining.splice(bestIdx, 1)[0];
+      result.push(chosen);
+      cur = chosen;
+    }
+    return result;
+  }
+
+  function twoOpt(route) {
+    if (route.length < 4) return route;
+    var improved = true, iterations = 0, maxIter = 100;
+    while (improved && iterations < maxIter) {
+      improved = false;
+      iterations++;
+      for (var i = 0; i < route.length - 2; i++) {
+        for (var j = i + 2; j < route.length; j++) {
+          var a = route[i], b = route[i+1], c = route[j], d = route[j+1];
+          var curr = haversine(a.lat, a.lng, b.lat, b.lng) +
+                     (d ? haversine(c.lat, c.lng, d.lat, d.lng) : 0);
+          var swap = haversine(a.lat, a.lng, c.lat, c.lng) +
+                     (d ? haversine(b.lat, b.lng, d.lat, d.lng) : 0);
+          if (swap < curr - 0.001) {
+            var seg = route.slice(i+1, j+1).reverse();
+            Array.prototype.splice.apply(route, [i+1, j-i].concat(seg));
+            improved = true;
+          }
+        }
+      }
+    }
+    return route;
+  }
+
+  // ============================================================
+  // GEOCODING · Nominatim + caché
+  // ============================================================
+  function getGeoCache() { return safeParse(localStorage.getItem(GEOCODE_CACHE_KEY), {}); }
+  function saveGeoCache(c) {
+    try { localStorage.setItem(GEOCODE_CACHE_KEY, JSON.stringify(c)); } catch (e) {}
+  }
+  function geocodeAddress(address) {
+    var cache = getGeoCache();
+    var key = address.toLowerCase().trim();
+    if (cache[key] && (Date.now() - cache[key].ts) < GEOCODE_CACHE_TTL_MS) {
+      return Promise.resolve({ lat: cache[key].lat, lng: cache[key].lng, cached: true });
+    }
+    var q = address + (address.toLowerCase().indexOf(GEOCODE_COUNTRY.toLowerCase()) >= 0 ? '' : ', ' + GEOCODE_COUNTRY);
+    var url = 'https://nominatim.openstreetmap.org/search?format=json&limit=1&q=' + encodeURIComponent(q);
+    return fetch(url, { headers: { 'Accept': 'application/json' } })
+      .then(function (r) {
+        if (!r.ok) throw new Error('HTTP ' + r.status);
+        return r.json();
+      })
+      .then(function (data) {
+        if (!data || !data.length) throw new Error('Dirección no encontrada');
+        var res = { lat: parseFloat(data[0].lat), lng: parseFloat(data[0].lon) };
+        cache[key] = { lat: res.lat, lng: res.lng, ts: Date.now() };
+        saveGeoCache(cache);
+        return res;
+      });
+  }
+  function sleep(ms) { return new Promise(function (r) { setTimeout(r, ms); }); }
+
+  async function optimizeRoute() {
+    if (isOptimizing) return;
+    var pending = state.route.filter(function (p) { return p.status !== 'delivered'; });
+    if (pending.length < 2) { showToast('⚠ Necesitas al menos 2 paradas pendientes', 2400); return; }
+    if (pending.length > 80) { showToast('⚠ Máximo 80 paradas por optimización', 2600); return; }
+
+    var btn = document.getElementById('optimizeBtn');
+    var prog = document.getElementById('optimizeProgress');
+    var txt = document.getElementById('optimizeText');
+    var sub = document.getElementById('optimizeSubtext');
+    isOptimizing = true;
+    btn.disabled = true;
+    prog.classList.remove('hidden');
+
+    try {
+      txt.textContent = 'Preparando ruta...';
+      sub.textContent = pending.length + ' paradas pendientes';
+
+      var toGeo = pending.filter(function (p) { return typeof p.lat !== 'number' || typeof p.lng !== 'number'; });
+      var geocodedOk = 0, geocodedFail = 0;
+
+      if (toGeo.length) {
+        txt.textContent = 'Geolocalizando direcciones...';
+        for (var i = 0; i < toGeo.length; i++) {
+          sub.textContent = (i + 1) + ' de ' + toGeo.length + ' · ' + toGeo[i].address.substring(0, 40);
+          try {
+            var c = await geocodeAddress(toGeo[i].address);
+            toGeo[i].lat = c.lat;
+            toGeo[i].lng = c.lng;
+            geocodedOk++;
+          } catch (e) {
+            geocodedFail++;
+            console.warn('Geocode fail:', toGeo[i].address, e);
+          }
+          if (i < toGeo.length - 1) await sleep(c.cached ? 50 : NOMINATIM_DELAY_MS);
+        }
+      }
+
+      var withCoords = pending.filter(function (p) { return typeof p.lat === 'number' && typeof p.lng === 'number'; });
+      if (withCoords.length < 2) {
+        throw new Error('No hay suficientes coordenadas. Añade columnas lat/lng al CSV o comprueba las direcciones.');
+      }
+
+      txt.textContent = 'Calculando ruta óptima...';
+      sub.textContent = withCoords.length + ' paradas con coordenadas';
+
+      var origin;
+      if (currentGPS && typeof currentGPS.lat === 'number') {
+        origin = { lat: currentGPS.lat, lng: currentGPS.lng };
+      } else {
+        origin = { lat: withCoords[0].lat, lng: withCoords[0].lng };
+      }
+
+      var ordered = nearestNeighbor(withCoords, origin);
+      ordered = twoOpt(ordered);
+
+      var delivered = state.route.filter(function (p) { return p.status === 'delivered'; });
+      var maxOrder = 0;
+      delivered.forEach(function (p) { if ((p.order || 0) > maxOrder) maxOrder = p.order; });
+
+      ordered.forEach(function (p, idx) { p.order = maxOrder + idx + 1; });
+
+      var noCoords = pending.filter(function (p) { return typeof p.lat !== 'number' || typeof p.lng !== 'number'; });
+      noCoords.forEach(function (p, idx) { p.order = maxOrder + ordered.length + idx + 1; });
+
+      state.route.sort(function (a, b) { return (a.order || 0) - (b.order || 0); });
+
+      saveMessengerData();
+      renderRoute();
+      renderEvents();
+
+      var msg = '✓ Ruta optimizada · ' + ordered.length + ' paradas';
+      if (geocodedFail > 0) msg += ' · ' + geocodedFail + ' sin geolocalizar';
+      showToast(msg, 3000);
+    } catch (e) {
+      console.error('Optimize error:', e);
+      showToast('⚠ ' + (e.message || 'Error al optimizar'), 3400);
+    } finally {
+      isOptimizing = false;
+      btn.disabled = false;
+      prog.classList.add('hidden');
+    }
+  }
+
+  // ============================================================
+  // Eventos · resto de la app
+  // ============================================================
   function renderEvents() {
     var box = document.getElementById('eventsTable');
     if (!state.events.length) {
@@ -1436,14 +1756,11 @@
       var photoCell = ph[0]
         ? '<img src="' + ph[0] + '" />' + (ph.length > 1 ? '<span class="photo-count-badge">+' + (ph.length - 1) + '</span>' : '') + sigBadge
         : '<div class="no-photo">' + (e.status === 'undone' ? 'Anulada' : 'Sin foto') + '</div>' + sigBadge;
-
       var st, stCls;
       if (e.status === 'delivered') { st = '✓ Entregado'; stCls = 'delivered'; }
       else if (e.status === 'undone') { st = '↺ Anulada'; stCls = 'undone'; }
       else { st = '⚠ Novedad'; stCls = 'issue'; }
-
       var extraClass = e.status === 'undone' ? ' undone' : '';
-
       html += '<div class="event-card' + extraClass + '" data-id="' + e.id + '">' +
         '<div class="event-photo">' + photoCell + '</div>' +
         '<div class="event-info"><div class="event-top"><span class="event-guide">' + e.guide + '</span>' +
@@ -1554,6 +1871,7 @@
         currentGPS = { lat: pos.coords.latitude, lng: pos.coords.longitude, accuracy: Math.round(pos.coords.accuracy) };
         gt.innerHTML = '<strong>' + currentGPS.lat.toFixed(5) + ', ' + currentGPS.lng.toFixed(5) + '</strong><br><small>±' + currentGPS.accuracy + ' m</small>';
         gb.classList.add('ok'); gb.classList.remove('error');
+        renderMap();
       },
       function (err) { gt.textContent = 'Error: ' + err.message; gb.classList.add('error'); gb.classList.remove('ok'); },
       { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
@@ -1722,26 +2040,18 @@
 
     if (evt.status === 'delivered') {
       html += '<div class="wa-actions-wrap" id="evtWaActions"></div>';
-
       var isAdmin = isAdminSession();
       var elapsedMs = Date.now() - evt.timestamp;
       var canUndo = false;
       var undoHint = '';
-      if (isAdmin) {
-        canUndo = true;
-      } else if (elapsedMs <= UNDO_WINDOW_MS) {
+      if (isAdmin) canUndo = true;
+      else if (elapsedMs <= UNDO_WINDOW_MS) {
         canUndo = true;
         var remainMin = Math.max(0, Math.ceil((UNDO_WINDOW_MS - elapsedMs) / 60000));
         undoHint = ' <span style="font-size:11px;opacity:0.7;font-weight:500;">(' + remainMin + ' min restantes)</span>';
-      } else {
-        undoHint = ' <span style="font-size:11px;opacity:0.7;font-weight:500;">(ventana expirada)</span>';
-      }
-
-      if (canUndo) {
-        html += '<button class="undo-btn" id="undoDeliveryBtn">↺ Anular entrega' + undoHint + '</button>';
-      } else {
-        html += '<button class="undo-btn disabled" disabled>↺ Anular entrega' + undoHint + '</button>';
-      }
+      } else undoHint = ' <span style="font-size:11px;opacity:0.7;font-weight:500;">(ventana expirada)</span>';
+      if (canUndo) html += '<button class="undo-btn" id="undoDeliveryBtn">↺ Anular entrega' + undoHint + '</button>';
+      else html += '<button class="undo-btn disabled" disabled>↺ Anular entrega' + undoHint + '</button>';
     }
 
     document.getElementById('eventDetailBody').innerHTML = html;
@@ -1762,15 +2072,13 @@
         });
       }
       var undoBtn = document.getElementById('undoDeliveryBtn');
-      if (undoBtn && !undoBtn.disabled) {
-        undoBtn.addEventListener('click', function () { openUndoModal(evt); });
-      }
+      if (undoBtn && !undoBtn.disabled) undoBtn.addEventListener('click', function () { openUndoModal(evt); });
     }
   }
   function closeEventDetail() { document.getElementById('eventOverlay').classList.remove('active'); }
 
   // ============================================================
-  // v15 · UNDO MODAL + confirmUndo
+  // Undo
   // ============================================================
   function openUndoModal(evt) {
     undoState = { evt: evt, reason: null };
@@ -1826,35 +2134,23 @@
         }
       });
     }
-
     saveMessengerData();
     closeUndoModal();
     closeEventDetail();
-
     if (!isAdminSession()) { renderRoute(); renderEvents(); }
     if (document.getElementById('adminOverlay').classList.contains('active')) {
-      if (adminState.drillDown) renderAdminDrillDown();
-      else renderAdminLive();
+      if (adminState.drillDown) renderAdminDrillDown(); else renderAdminLive();
     }
     if (document.getElementById('adminDesktopOverlay').classList.contains('active')) {
       var mm = desktopAdminState.messengers.find(function(x) { return x.code === desktopAdminState.selectedCode; });
       if (mm) renderDesktopMessengerDetail(mm);
     }
-
     showToast('✓ Entrega anulada · paquete vuelve a reintentar', 3000);
-
-    // Intento de sync servidor (best effort, si existe la función)
     try {
-      if (RutaXAPI.undoDelivery) {
-        RutaXAPI.undoDelivery(evt.id, finalReason).catch(function(err) {
-          console.warn('Undo sync failed:', err);
-        });
-      } else if (RutaXAPI.updatePackage && evt.packageId) {
-        RutaXAPI.updatePackage(evt.packageId, 'pending').catch(function() {});
-      }
+      if (RutaXAPI.undoDelivery) RutaXAPI.undoDelivery(evt.id, finalReason).catch(function(){});
+      else if (RutaXAPI.updatePackage && evt.packageId) RutaXAPI.updatePackage(evt.packageId, 'pending').catch(function(){});
     } catch (e) {}
   }
-
   function setupUndoEvents() {
     document.querySelectorAll('.undo-reason-option').forEach(function (btn) {
       btn.addEventListener('click', function () {
@@ -1878,6 +2174,9 @@
     });
   }
 
+  // ============================================================
+  // Add package / Search / Settings / CSV
+  // ============================================================
   function openAddPackage() {
     ['addClient','addAddress','addPhone','addGuide','addNote'].forEach(function (id) { document.getElementById(id).value = ''; });
     setAddFormType('delivery');
@@ -1941,7 +2240,6 @@
     events.sort(function (a, b) { return b.timestamp - a.timestamp; });
     return { pending: pending, events: events, hasQuery: hasQ };
   }
-
   function renderSearchResults(query) {
     var box = document.getElementById('searchResults');
     var res = performSearch(query);
@@ -1967,7 +2265,6 @@
     box.innerHTML = html;
     attachSearchResultHandlers();
   }
-
   function buildPendingResultCard(p) {
     var isP = p.type === 'pickup';
     var retryBadge = p.retry ? '<span class="status-badge" style="background:#fef3c7;color:#b45309;">🔁 Reintentar</span>' : '<span class="status-badge pending">○ Pendiente</span>';
@@ -2057,7 +2354,7 @@
   }
   function normHead(s) { return (s||'').toString().trim().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,''); }
   function detectColumns(h) {
-    var m = { guide: -1, client: -1, address: -1, phone: -1, type: -1 };
+    var m = { guide: -1, client: -1, address: -1, phone: -1, type: -1, lat: -1, lng: -1 };
     for (var i = 0; i < h.length; i++) {
       var l = normHead(h[i]);
       if (m.guide < 0 && ['guia','guide','num guia','numero de guia','guia de envio','tracking'].indexOf(l) >= 0) m.guide = i;
@@ -2065,6 +2362,8 @@
       else if (m.address < 0 && ['direccion','address','dir','direccion de entrega','direccion destino'].indexOf(l) >= 0) m.address = i;
       else if (m.phone < 0 && ['telefono','phone','tel','celular','movil','contacto'].indexOf(l) >= 0) m.phone = i;
       else if (m.type < 0 && ['tipo','type','categoria','tipo de visita'].indexOf(l) >= 0) m.type = i;
+      else if (m.lat < 0 && ['lat','latitud','latitude'].indexOf(l) >= 0) m.lat = i;
+      else if (m.lng < 0 && ['lng','lon','long','longitud','longitude'].indexOf(l) >= 0) m.lng = i;
     }
     return m;
   }
@@ -2079,18 +2378,27 @@
       var empty = true;
       for (var k = 0; k < r.length; k++) if (r[k] && r[k].toString().trim()) { empty = false; break; }
       if (empty) continue;
-      var g, c, a, p, t = 'delivery';
+      var g, c, a, p, t = 'delivery', lat = null, lng = null;
       if (useH) {
         g = map.guide >= 0 ? (r[map.guide]||'').trim() : '';
         c = map.client >= 0 ? (r[map.client]||'').trim() : '';
         a = map.address >= 0 ? (r[map.address]||'').trim() : '';
         p = map.phone >= 0 ? (r[map.phone]||'').trim() : '';
         if (map.type >= 0) { var tt = normHead(r[map.type]||''); if (tt === 'recogida' || tt === 'pickup' || tt === 'recoger') t = 'pickup'; }
+        if (map.lat >= 0 && map.lng >= 0) {
+          var latV = parseFloat(r[map.lat]);
+          var lngV = parseFloat(r[map.lng]);
+          if (!isNaN(latV) && !isNaN(lngV) && Math.abs(latV) <= 90 && Math.abs(lngV) <= 180) {
+            lat = latV; lng = lngV;
+          }
+        }
       } else {
         g = (r[0]||'').trim(); c = (r[1]||'').trim(); a = (r[2]||'').trim(); p = (r[3]||'').trim();
       }
       if (!g && !a) continue;
-      items.push({ guide: g, client: c, address: a, phone: p, type: t });
+      var item = { guide: g, client: c, address: a, phone: p, type: t };
+      if (lat !== null && lng !== null) { item.lat = lat; item.lng = lng; }
+      items.push(item);
     }
     return items;
   }
@@ -2130,8 +2438,10 @@
         document.querySelectorAll('.tab').forEach(function (x) { x.classList.remove('active'); });
         document.querySelectorAll('.view').forEach(function (v) { v.classList.remove('active'); });
         tab.classList.add('active');
-        document.getElementById(tab.getAttribute('data-tab') === 'ruta' ? 'viewRuta' : 'viewRegistro').classList.add('active');
+        var targetId = tab.getAttribute('data-tab') === 'ruta' ? 'viewRuta' : 'viewRegistro';
+        document.getElementById(targetId).classList.add('active');
         updateFabVisibility();
+        if (targetId === 'viewRuta') setTimeout(renderMap, 50);
       });
     });
     document.getElementById('backBtn').addEventListener('click', closeDetail);
@@ -2187,7 +2497,8 @@
           pendingCSVItems = items;
           document.getElementById('csvPreview').innerHTML = '<div style="font-weight:700;color:var(--ink);margin-bottom:6px;">' + items.length + ' ítems:</div>' +
             items.slice(0, 50).map(function (it) {
-              return '<div class="csv-preview-item"><div><span class="guide">' + (it.guide||'(sin guía)') + '</span> · ' + (it.client||'Sin cliente') + '</div><div class="addr">' + (it.address||'') + '</div></div>';
+              var coords = (typeof it.lat === 'number') ? ' <span style="color:var(--green-dark);font-weight:700;">📍</span>' : '';
+              return '<div class="csv-preview-item"><div><span class="guide">' + (it.guide||'(sin guía)') + '</span> · ' + (it.client||'Sin cliente') + coords + '</div><div class="addr">' + (it.address||'') + '</div></div>';
             }).join('');
           document.getElementById('csvPreviewBox').classList.remove('hidden');
         } catch (err) { showToast('Error al leer'); }
@@ -2204,12 +2515,14 @@
       var maxO = 0; state.route.forEach(function (r) { if ((r.order||0) > maxO) maxO = r.order; });
       var now = Date.now();
       pendingCSVItems.forEach(function (it, j) {
-        state.route.push({
+        var p = {
           id: 'pkg-csv-' + now + '-' + j, order: maxO + j + 1,
           guide: it.guide || ('CSV-' + (now + j)), client: it.client || 'Sin nombre',
           address: it.address || 'Sin dirección', phone: it.phone || '',
           type: it.type || 'delivery', status: 'pending', fromCSV: true
-        });
+        };
+        if (typeof it.lat === 'number' && typeof it.lng === 'number') { p.lat = it.lat; p.lng = it.lng; }
+        state.route.push(p);
       });
       saveMessengerData(); renderRoute();
       pendingCSVItems = null; document.getElementById('csvPreviewBox').classList.add('hidden');
@@ -2245,6 +2558,8 @@
     document.getElementById('whatsappOverlay').addEventListener('click', function (e) {
       if (e.target.id === 'whatsappOverlay') closeWhatsAppPrompt();
     });
+    var optBtn = document.getElementById('optimizeBtn');
+    if (optBtn) optBtn.addEventListener('click', optimizeRoute);
     setupSignatureEvents();
     setupUndoEvents();
   }
