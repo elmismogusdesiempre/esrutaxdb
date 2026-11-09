@@ -5,7 +5,7 @@
 (function () {
   'use strict';
 
-var API_URL = 'https://script.google.com/macros/s/AKfycbz4GOs1dvvk4ftwDPjfOQeToha1k3T7-K7qh4Hl8XIdVm_i3khG8oBDLJbF14AaPKQPbw/exec';
+var API_URL = 'https://script.google.com/macros/s/AKfycbygLkD16JLojI0_KY2Mu3XT2r5kwfLXwLssaTkfxte4R_aWhKTMiZB3cyuL4sl7HsZz2g/exec';
 
  
   var TOKEN_KEY = 'rutax_token';
