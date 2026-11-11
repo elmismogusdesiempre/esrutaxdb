@@ -53,5 +53,6 @@ window.RutaXAPI={
   adminDeleteMessenger:code=>apiRequest('admin_delete_messenger',{code}),
   adminAssignRoute:(code,items,mode)=>apiRequest('admin_assign_route',{code,items,mode}),
   adminLive:(since,until)=>apiRequest('admin_live',{since,until}),
+  adminDeletePending:(code,ids)=>apiRequest('admin_delete_pending',{code,ids}),
   adminGetRoutes:code=>apiRequest('admin_get_routes',{code})
 };
