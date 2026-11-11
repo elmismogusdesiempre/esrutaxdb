@@ -45,6 +45,10 @@ Después de desplegar, abrir «Acceso administración» y escribir el PIN config
 
 ## Configurar Drive
 
+**Configuración guiada sin crear propiedades manualmente:** abrir un proyecto nuevo en Apps Script, pegar `scripts/drive-bridge.gs` completo, guardar y ejecutar `configurarRutaX`. Autorizar Google. La función crea una carpeta nueva, guarda las propiedades privadas y programa la retención de 30 días. El registro muestra el secreto para copiarlo directamente a Vercel como `DRIVE_BRIDGE_SECRET`; no compartirlo en el chat. Después desplegar la aplicación web con ejecución como propietario y acceso «Cualquiera», y guardar su enlace `/exec` como `DRIVE_BRIDGE_URL`. Repetir la función conserva el secreto y la carpeta existentes.
+
+También se puede configurar manualmente:
+
 1. Crear una carpeta de Drive para las evidencias nuevas y copiar su ID de la URL.
 2. Crear un proyecto NUEVO en Apps Script; pegar `scripts/drive-bridge.gs`. Conservar el proyecto anterior intacto.
 3. Configuración del proyecto → Propiedades del script: añadir `DRIVE_BRIDGE_SECRET` y `DRIVE_ROOT_FOLDER_ID`.
