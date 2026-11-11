@@ -111,7 +111,7 @@
   queueBar.onclick=()=>flushOutbox(true);
   window.addEventListener('online',()=>flushOutbox(true));
   window.addEventListener('rutax:outbox',()=>flushOutbox(false));
-  async function tick(){if(!current||refreshBusy||document.hidden)return;refreshBusy=true;try{await flushOutbox(true);await loadBadge();if(current.role==='messenger'&&!document.querySelector('#detailOverlay.active,#addPackageOverlay.active,#undoOverlay.active')){const data=await window.RutaXAPI.pull();window.RutaXUI.apply(data);updateAvatar();}}catch(err){if(err.status===401){clearInterval(noticeTimer);noticeTimer=null;window.RutaXUI.toast('Tu sesión terminó. Vuelve a ingresar.');location.reload();}}finally{refreshBusy=false;}}
+  async function tick(){if(!current||refreshBusy||document.hidden)return;refreshBusy=true;try{await flushOutbox(true);await loadBadge();if(current.role==='messenger'){const data=await window.RutaXAPI.pull();window.RutaXUI.apply(data,{notify:true});updateAvatar();}}catch(err){if(err.status===401){clearInterval(noticeTimer);noticeTimer=null;window.RutaXUI.toast('Tu sesión terminó. Vuelve a ingresar.');location.reload();}}finally{refreshBusy=false;}}
   document.addEventListener('visibilitychange',()=>{if(!document.hidden)tick();});
   navigator.serviceWorker?.addEventListener('message',e=>{if(e.data?.type==='OPEN_NOTICES')openNotices();});
   if('serviceWorker' in navigator)navigator.serviceWorker.register('/sw.js').catch(()=>{});

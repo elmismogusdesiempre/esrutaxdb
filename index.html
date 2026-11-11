@@ -690,6 +690,7 @@
       <div><div class="detail-title" id="detailTitle">Registrar evidencia</div><div class="detail-sub" id="detailGuide">Guía —</div></div>
     </div>
     <div class="detail-body">
+      <div id="routeChangeNotice" class="route-change-notice hidden" role="status"></div>
       <div class="info-card">
         <div class="info-row"><span class="label">Cliente</span><span id="detailClient">—</span></div>
         <div class="info-row"><span class="label">Dirección</span><span id="detailAddress">—</span></div>
@@ -976,6 +977,7 @@
   </div>
   <div class="ad-body">
     <aside class="ad-sidebar">
+      <button type="button" id="adAddMessengerBtn" class="rx-btn primary ad-add-messenger">＋ Agregar repartidor</button>
       <div class="ad-search"><input type="text" id="adSearchInput" placeholder="Buscar mensajero..." autocomplete="off" /></div>
       <div class="ad-msg-list" id="adMsgList"></div>
     </aside>
@@ -1103,6 +1105,7 @@
   }
 
   function mergeLocalPhotos(serverEvents) {
+    (serverEvents||[]).forEach(function(e){e.synced=true;});
     if (!serverEvents || !serverEvents.length) return serverEvents || [];
     var key = state.messenger ? dataKey(state.messenger.code, 'events') : null;
     if (!key) return serverEvents;
@@ -1535,6 +1538,7 @@
   function removePhotoAt(i) { if (i < 0 || i >= currentPhotos.length) return; currentPhotos.splice(i, 1); if (currentPhotoIndex >= currentPhotos.length) currentPhotoIndex = Math.max(0, currentPhotos.length - 1); updateEvidenceFormUI(); showToast('Foto eliminada', 1400); }
 
   function openDetail(pkg) {
+    document.getElementById('routeChangeNotice').classList.add('hidden');document.getElementById('btnEntregado').disabled=false;document.getElementById('btnNovedad').disabled=false;
     currentPackage = pkg; currentPhotos = []; currentPhotoIndex = 0; currentNoPhoto = false; currentGPS = null; hasSignatureStrokes = false;
     var isPickup = pkg.type === 'pickup';
     document.getElementById('detailTitle').textContent = isPickup ? 'Registrar recogida' : 'Registrar evidencia';
@@ -1567,6 +1571,7 @@
   async function saveDelivery(status) {
     try { var latest = await RutaXAPI.request('delivery_config'); state.settings = Object.assign({}, DEFAULT_SETTINGS, latest.settings); } catch(err) { showToast('No se pudo validar la configuración. Reintenta con conexión.'); return; }
     if (!currentPackage) return;
+    if(currentPackage.routeWithdrawn){showToast('El administrador retiró este destino de la ruta');return;}
     var isPickup = currentPackage.type === 'pickup';
     if (status === 'delivered') {
       if (!currentPhotos.length && !(state.settings.allowNoPhoto && currentNoPhoto)) { showToast('⚠ Toma una foto'); return; }
@@ -1578,7 +1583,7 @@
     var sigData = null; if (needSig) { try { sigData = signatureCanvas.toDataURL('image/png'); } catch (e) { showToast('Error firma'); return; } }
     var pkgS = currentPackage, gpsS = currentGPS, noPhotoS = currentNoPhoto; var photosS = currentPhotos.slice(), sigColor = getSignatureColorHex(), ts = Date.now();
     var commit = function (photos, sigD) {
-      var event = { id: 'evt-' + crypto.randomUUID(), packageId: pkgS.id, guide: pkgS.guide, client: pkgS.client, address: pkgS.address, phone: pkgS.phone || '', recipient: rec, status: status, type: pkgS.type || 'delivery', photos: photos, photo: photos[0] || null, localPhotos: photos.slice(), noPhoto: noPhotoS && !photos.length, signature: sigD, signatureColor: sigColor, signed: !!sigD, note: note, gps: gpsS, messengerCode: state.messenger.code, messengerName: state.messenger.name, timestamp: ts };
+      var event = { id: 'evt-' + crypto.randomUUID(), synced:false, packageId: pkgS.id, guide: pkgS.guide, client: pkgS.client, address: pkgS.address, phone: pkgS.phone || '', recipient: rec, status: status, type: pkgS.type || 'delivery', photos: photos, photo: photos[0] || null, localPhotos: photos.slice(), noPhoto: noPhotoS && !photos.length, signature: sigD, signatureColor: sigColor, signed: !!sigD, note: note, gps: gpsS, messengerCode: state.messenger.code, messengerName: state.messenger.name, timestamp: ts };
       var toUpload = photos.slice(); state.events.push(event);
       var pkg = state.route.find(function (p) { return p.id === pkgS.id; });
       if (pkg) { pkg.status = status === 'delivered' ? 'delivered' : 'issue'; if (status === 'delivered') pkg.retry = false; }
@@ -1709,7 +1714,7 @@
     btn.textContent = '📍 Ubicando...';
 
     var maxO = 0; state.route.forEach(function (r) { if ((r.order||0) > maxO) maxO = r.order; });
-    var np = { id: 'pkg-manual-' + Date.now(), order: maxO + 1, guide: g || (addFormType === 'pickup' ? 'REC-' : 'MAN-') + (maxO + 1), client: c, address: a, phone: p, type: addFormType, status: 'pending', fromManual: true };
+    var np = { id: 'pkg-manual-' + Date.now(), order: maxO + 1, guide: g || (addFormType === 'pickup' ? 'REC-' : 'MAN-') + (maxO + 1), client: c, address: a, phone: p, type: addFormType, status: 'pending', fromManual: true, localPending:true };
     
     try {
       var geo = await geocodeAddress(a);
@@ -1727,7 +1732,7 @@
     btn.disabled = false;
     btn.textContent = oldTxt;
     
-    RutaXAPI.addPackages([np]).catch(function () { np.syncError = true; saveMessengerData(); showToast('⚠ Quedó local', 2600); });
+    RutaXAPI.addPackages([np]).then(function(){np.localPending=false;var saved=state.route.find(function(r){return r.id===np.id;});if(saved)saved.localPending=false;saveMessengerData();}).catch(function () { np.syncError = true; saveMessengerData(); showToast('⚠ Quedó local', 2600); });
   }
 
   function buildDateHaystack(ts) { var d = new Date(ts); var ms = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre']; var mss = ['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic']; var ds = ['domingo','lunes','martes','miercoles','jueves','viernes','sabado']; return [d.getDate(), d.getMonth()+1, d.getFullYear(), ms[d.getMonth()], mss[d.getMonth()], ds[d.getDay()]].join(' '); }
@@ -1981,7 +1986,7 @@
     if (!n) { showToast('⚠ Escribe el nombre'); return; } if ((!adminState.editingCode && !/^\d{4}$/.test(p)) || (p && !/^\d{4}$/.test(p))) { showToast('⚠ PIN 4 dígitos'); return; }
     var isNew = adminState.editingCode === null; var pl = { name: n, zone: z, pin: p };
     var promise = isNew ? RutaXAPI.adminAddMessenger(pl) : (pl.code = adminState.editingCode, RutaXAPI.adminUpdateMessenger(pl));
-    promise.then(function (d) { closeEditMessenger(); showToast(isNew ? '✓ Creado ' + (d.code || '') : '✓ Actualizado', 2200); refreshAdminMensajeros(); if (document.getElementById('adminDesktopOverlay').classList.contains('active')) loadDesktopMessengers(); }).catch(function (err) { showToast('⚠ ' + (err.message || 'Error'), 2600); });
+    promise.then(function (d) { if(isNew&&d.code){desktopAdminState.selectedCode=d.code;desktopAdminState.filter='';document.getElementById('adSearchInput').value='';}closeEditMessenger(); showToast(isNew ? '✓ Creado ' + (d.code || '') : '✓ Actualizado', 2200); refreshAdminMensajeros(); if (document.getElementById('adminDesktopOverlay').classList.contains('active')) loadDesktopMessengers(); }).catch(function (err) { showToast('⚠ ' + (err.message || 'Error'), 2600); });
   }
 
   function renderAdminLive() {
@@ -2203,6 +2208,7 @@
   }
 
   function setupDesktopAdminEvents() {
+    document.getElementById('adAddMessengerBtn').addEventListener('click',function(){openEditMessenger(null);});
     document.getElementById('adminDesktopBtn').addEventListener('click', openAdminDesktop);
     document.getElementById('desktopBackMobile').addEventListener('click', function () { closeAdminDesktop(); document.getElementById('adminOverlay').classList.add('active'); refreshAdminMensajeros(); });
     document.getElementById('desktopLogoutBtn').addEventListener('click', function () { closeAdminDesktop(); adminLogout(); });
@@ -2241,15 +2247,32 @@
     toast: showToast,
     historyCursor: function(){ var sorted=state.events.slice().sort(function(a,b){return b.timestamp-a.timestamp || b.id.localeCompare(a.id);});return sorted[sorted.length-1] || null; },
     appendHistory: function(events){ var ids=new Set(state.events.map(function(e){return e.id;}));events.forEach(function(e){if(!ids.has(e.id))state.events.push(e);});renderEvents(); },
-    apply: function(data) {
-      if (data.unchanged || !state.messenger || data.messenger.code !== state.messenger.code) return;
-      state.messenger = data.messenger;
-      state.settings = Object.assign({}, DEFAULT_SETTINGS, data.settings || {});
-      if(data.role !== 'messenger') return;
-      // Evita reemplazar el formulario en el que está trabajando el repartidor.
-      if(document.getElementById('detailOverlay').classList.contains('active')) return;
-      state.route = data.route || []; state.events = mergeLocalPhotos(data.events || []);
-      saveMessengerData(); renderHeader(); renderRoute(); renderEvents();
+    apply: function(data,options) {
+      if(data.unchanged||!state.messenger||data.messenger.code!==state.messenger.code)return;
+      state.messenger=data.messenger;
+      state.settings=Object.assign({},DEFAULT_SETTINGS,data.settings||{});
+      if(data.role!=='messenger')return;
+      var oldPending=new Set(state.route.filter(function(r){return r.status!=='delivered';}).map(function(r){return r.id;}));
+      var remoteEvents=data.events||[],remoteEventIds=new Set(remoteEvents.map(function(e){return e.id;}));
+      var localEvents=state.events.filter(function(e){return e.synced===false&&!remoteEventIds.has(e.id);});
+      var localPackages=state.route.filter(function(r){return r.localPending&&!((data.route||[]).some(function(p){return p.id===r.id;}));});
+      state.route=(data.route||[]).concat(localPackages);
+      state.events=mergeLocalPhotos(remoteEvents).concat(localEvents);
+      localEvents.forEach(function(e){var pkg=state.route.find(function(r){return r.id===e.packageId;});if(pkg)pkg.status=e.status;});
+      var newPending=new Set(state.route.filter(function(r){return r.status!=='delivered';}).map(function(r){return r.id;}));
+      var added=Array.from(newPending).filter(function(id){return !oldPending.has(id);}).length;
+      var removed=Array.from(oldPending).filter(function(id){return !newPending.has(id);}).length;
+      // Solo se repintan lista, mapa y registro: las fotos, firma y campos abiertos permanecen intactos.
+      if(currentPackage){
+        var withdrawn=!state.route.some(function(r){return r.id===currentPackage.id;});
+        var previouslyWithdrawn=!!currentPackage.routeWithdrawn;currentPackage.routeWithdrawn=withdrawn;
+        var notice=document.getElementById('routeChangeNotice');notice.classList.toggle('hidden',!withdrawn);
+        if(withdrawn){notice.textContent='El administrador retiró este destino de tu ruta. La evidencia que estabas capturando sigue en pantalla.';document.getElementById('btnEntregado').disabled=true;document.getElementById('btnNovedad').disabled=true;}
+        else if(previouslyWithdrawn){document.getElementById('btnEntregado').disabled=false;document.getElementById('btnNovedad').disabled=false;}
+      }
+      saveMessengerData();renderHeader();renderRoute();renderEvents();
+      if(options&&options.notify&&(added||removed))showToast('Ruta actualizada'+(added?' · '+added+' nuevo(s)':'')+(removed?' · '+removed+' retirado(s)':''),3500);
+      return {added:added,removed:removed};
     }
   };
 
@@ -2257,5 +2280,7 @@
 })();
 </script>
 <script src="upgrade.js"></script>
+<script src="vendor/supabase.min.js"></script>
+<script src="route-live.js"></script>
 </body>
 </html>

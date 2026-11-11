@@ -1,17 +1,21 @@
 // Solo utiliza la API del mismo dominio; las claves de Supabase permanecen en Vercel.
 const TOKEN_KEY='rx_session_marker_v2';
-let activeSession=false,version=null;
+let activeSession=false,version=null,sessionEpoch=0;
 async function apiRequest(action,payload={}) {
+  const requestEpoch=sessionEpoch;
   if(action==='pull'&&version!==null)payload={...payload,version};
   const response=await fetch('/api/rutax',{method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json'},body:JSON.stringify({action,payload})});
   const data=await response.json();
+  if(action==='pull'&&requestEpoch!==sessionEpoch)return {ok:true,unchanged:true};
   if(!response.ok||data.ok===false) {
     if(response.status===401){localStorage.removeItem(TOKEN_KEY);activeSession=false;}
     throw Object.assign(new Error(data.error||'Error del servidor'),{status:response.status});
   }
+  if(action==='pull'&&version!==null&&data.version!=null&&Number(data.version)<Number(version))return {ok:true,unchanged:true,version};
   window.RutaXPeople?.remember(data.messengers || []);
   if(data.messenger) window.RutaXPeople?.remember(data.messenger);
   if((action==='pull'||action==='login')&&!data.unchanged) {
+    if(action==='login')sessionEpoch++;
     version=data.version??null;
     activeSession=true;localStorage.setItem(TOKEN_KEY,'1');
     window.dispatchEvent(new CustomEvent('rutax:session',{detail:data}));
@@ -25,7 +29,7 @@ async function logout() {
     const sub=await reg?.pushManager?.getSubscription();endpoint=sub?.endpoint||'';
   }
   await apiRequest('logout',{endpoint});
-  localStorage.removeItem(TOKEN_KEY);activeSession=false;version=null;
+  localStorage.removeItem(TOKEN_KEY);activeSession=false;version=null;sessionEpoch++;
   window.dispatchEvent(new Event('rutax:logout'));
 }
 window.RutaXAPI={
