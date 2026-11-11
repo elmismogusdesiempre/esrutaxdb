@@ -581,8 +581,14 @@
     #undoOverlay .whatsapp-sheet { max-width: 560px; border-radius: 16px; max-height: 85vh; }
   }
 </style>
+<script src="vendor/purify.min.js"></script>
+<script src="safe-html.js"></script>
+<script src="outbox.js"></script>
 <script src="api.js"></script>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<link rel="manifest" href="/manifest.webmanifest">
+<link rel="apple-touch-icon" href="/icon-192.png">
+<link rel="stylesheet" href="/upgrade.css">
 </head>
 <body>
 
@@ -756,7 +762,7 @@
       <div><div class="detail-title">Ajustes</div><div class="detail-sub">Configuración de Ruta X</div></div>
     </div>
     <div class="settings-body">
-      <div class="settings-section">
+      <div class="settings-section legacy-setting">
         <h3>🎯 Preferencias de captura</h3>
         <div class="toggle-row">
           <div class="toggle-label"><strong>Pedir nombre de quien recibe</strong><span>Se pide al marcar Entregado</span></div>
@@ -771,7 +777,7 @@
           <button class="toggle-switch" id="toggleWhatsApp" role="switch"></button>
         </div>
       </div>
-      <div class="settings-section">
+      <div class="settings-section legacy-setting">
         <h3>✍️ Firma del cliente</h3>
         <div class="toggle-row">
           <div class="toggle-label"><strong>Pedir firma al entregar</strong><span>Se graba como marca de agua en las fotos</span></div>
@@ -790,14 +796,14 @@
       </div>
       
       <!-- NUEVO AJUSTE: Región de búsqueda -->
-      <div class="settings-section">
+      <div class="settings-section legacy-setting">
         <h3>🌍 Geocodificación</h3>
         <p>Ayuda al mapa a encontrar tus direcciones limitando la búsqueda a un país o ciudad específica. Déjalo en blanco para buscar en todo el mundo.</p>
         <input type="text" id="geocodeCountryInput" class="add-text-input" placeholder="Ej: España, Colombia, Madrid..." autocomplete="off" style="margin-bottom:0;" />
         <button class="settings-btn primary" id="saveGeocodeBtn" style="margin-top:10px;">Guardar región</button>
       </div>
 
-      <div class="settings-section">
+      <div class="settings-section legacy-setting">
         <h3>📁 Cargar ruta desde archivo</h3>
         <p>Sube un CSV. Opcional: columnas <code>lat</code> y <code>lng</code> para saltar la geocodificación.</p>
         <span class="csv-info-badge">guia, cliente, direccion, telefono, tipo, lat, lng</span>
@@ -814,14 +820,14 @@
       <div class="settings-section">
         <h3>👤 Cuenta</h3>
         <p id="settingsAccountText">Estás como: —</p>
-        <button class="settings-btn secondary" id="changeMessengerBtn">Cambiar de mensajero</button>
+        <button class="settings-btn secondary" id="changeMessengerBtn">Cerrar sesión</button>
       </div>
-      <div class="settings-section">
+      <div class="settings-section legacy-setting">
         <h3>🗑️ Reiniciar mi ruta</h3>
         <p>Borra tus registros. Solo afecta a tu usuario.</p>
         <button class="settings-btn danger" id="resetRouteBtn">Reiniciar mis datos</button>
       </div>
-      <div class="app-version">Ruta X · v0.19 · Geocodificación Mejorada</div>
+      <div class="app-version">Ruta X · Supabase · v1.0</div>
     </div>
   </div>
 </div>
@@ -944,7 +950,7 @@
       <button class="add-form-btn confirm" id="editMsConfirmBtn">Guardar</button>
     </div>
     <div class="add-form-actions" style="grid-template-columns:1fr; margin-top:8px;">
-      <button class="add-form-btn" id="editMsDeleteBtn" style="background:#fef2f2;color:#dc2626;border:1px solid #fecaca;display:none;">🗑️ Eliminar mensajero</button>
+      <button class="add-form-btn" id="editMsDeleteBtn" style="background:#fef2f2;color:#dc2626;border:1px solid #fecaca;display:none;">🗑️ Deshabilitar mensajero</button>
     </div>
   </div>
 </div>
@@ -1083,7 +1089,7 @@
   function pruneLocalPhotos() {
     var withLocal = [];
     for (var i = state.events.length - 1; i >= 0; i--) {
-      if (state.events[i].localPhotos && state.events[i].localPhotos.length) withLocal.push(i);
+      if (state.events[i].synced && state.events[i].localPhotos && state.events[i].localPhotos.length) withLocal.push(i);
     }
     for (var j = MAX_EVENTS_WITH_LOCAL_PHOTOS; j < withLocal.length; j++) delete state.events[withLocal[j]].localPhotos;
   }
@@ -1351,7 +1357,7 @@
   function saveGeoCache(c) { try { localStorage.setItem(GEOCODE_CACHE_KEY, JSON.stringify(c)); } catch (e) {} }
   
   function geocodeAddress(address) {
-    var cache = getGeoCache(); var key = address.toLowerCase().trim();
+    var cache = getGeoCache(); var key = (address + '|' + (state.settings.geocodeCountry || '')).toLowerCase().trim();
     if (cache[key] && (Date.now() - cache[key].ts) < GEOCODE_CACHE_TTL_MS) return Promise.resolve({ lat: cache[key].lat, lng: cache[key].lng, cached: true });
     
     // Obtenemos el país/región desde los ajustes
@@ -1495,16 +1501,7 @@
     updateEvidenceFormUI(); document.getElementById('detailOverlay').classList.add('active');
     if (state.settings.requireSignature) setTimeout(function () { setupSignatureCanvas(); }, 50);
     
-    var delBtn = document.getElementById('deletePackageBtn');
-    var newDelBtn = delBtn.cloneNode(true);
-    delBtn.parentNode.replaceChild(newDelBtn, delBtn);
-    newDelBtn.addEventListener('click', function () {
-      if (!confirm('¿Seguro que quieres eliminar este destino de tu ruta?')) return;
-      state.route = state.route.filter(function(r) { return r.id !== pkg.id; });
-      saveMessengerData(); renderRoute(); closeDetail(); showToast('🗑️ Destino eliminado');
-      if (RutaXAPI.deletePackage) RutaXAPI.deletePackage(pkg.id).catch(function(){});
-    });
-    
+    document.getElementById('deletePackageBtn').hidden = true;
     startGPS();
   }
   function closeDetail() {
@@ -1523,7 +1520,8 @@
     );
   }
 
-  function saveDelivery(status) {
+  async function saveDelivery(status) {
+    try { var latest = await RutaXAPI.request('delivery_config'); state.settings = Object.assign({}, DEFAULT_SETTINGS, latest.settings); } catch(err) { showToast('No se pudo validar la configuración. Reintenta con conexión.'); return; }
     if (!currentPackage) return;
     var isPickup = currentPackage.type === 'pickup';
     if (status === 'delivered') {
@@ -1536,7 +1534,7 @@
     var sigData = null; if (needSig) { try { sigData = signatureCanvas.toDataURL('image/png'); } catch (e) { showToast('Error firma'); return; } }
     var pkgS = currentPackage, gpsS = currentGPS, noPhotoS = currentNoPhoto; var photosS = currentPhotos.slice(), sigColor = getSignatureColorHex(), ts = Date.now();
     var commit = function (photos, sigD) {
-      var event = { id: 'evt-' + Date.now(), packageId: pkgS.id, guide: pkgS.guide, client: pkgS.client, address: pkgS.address, phone: pkgS.phone || '', recipient: rec, status: status, type: pkgS.type || 'delivery', photos: photos, photo: photos[0] || null, localPhotos: photos.slice(), noPhoto: noPhotoS && !photos.length, signature: sigD, signatureColor: sigColor, signed: !!sigD, note: note, gps: gpsS, messengerCode: state.messenger.code, messengerName: state.messenger.name, timestamp: ts };
+      var event = { id: 'evt-' + crypto.randomUUID(), packageId: pkgS.id, guide: pkgS.guide, client: pkgS.client, address: pkgS.address, phone: pkgS.phone || '', recipient: rec, status: status, type: pkgS.type || 'delivery', photos: photos, photo: photos[0] || null, localPhotos: photos.slice(), noPhoto: noPhotoS && !photos.length, signature: sigD, signatureColor: sigColor, signed: !!sigD, note: note, gps: gpsS, messengerCode: state.messenger.code, messengerName: state.messenger.name, timestamp: ts };
       var toUpload = photos.slice(); state.events.push(event);
       var pkg = state.route.find(function (p) { return p.id === pkgS.id; });
       if (pkg) { pkg.status = status === 'delivered' ? 'delivered' : 'issue'; if (status === 'delivered') pkg.retry = false; }
@@ -1557,7 +1555,7 @@
         var e = state.events.find(function (x) { return x.id === event.id; });
         if (e) {
           if (!e.localPhotos && photos && photos.length) e.localPhotos = photos.slice();
-          e.photos = resp.photoUrls; e.photo = resp.photoUrls[0] || null; e.photoIds = resp.photoIds || []; e.synced = true; pruneLocalPhotos(); saveMessengerData();
+          e.signature = resp.signature || ''; e.photos = resp.photoUrls; e.photo = resp.photoUrls[0] || null; e.photoIds = resp.photoIds || []; e.synced = true; pruneLocalPhotos(); saveMessengerData();
           if (eventCarouselState.evt && eventCarouselState.evt.id === event.id) { eventCarouselState.photos = resp.photoUrls; eventCarouselState.evt.photos = resp.photoUrls; renderEventCarousel(); }
           renderEvents();
         }
@@ -1811,25 +1809,11 @@
     document.getElementById('settingsBtn').addEventListener('click', openSettings);
     document.getElementById('settingsBackBtn').addEventListener('click', closeSettings);
     
-    // Save geocode setting
-    document.getElementById('saveGeocodeBtn').addEventListener('click', function() {
-      state.settings.geocodeCountry = document.getElementById('geocodeCountryInput').value.trim();
-      saveMessengerData();
-      RutaXAPI.saveSettings(state.settings).catch(function(){});
-      showToast('✓ Región guardada', 1800);
-    });
-
-    [['toggleRecipient','requireRecipient'],['toggleNoPhoto','allowNoPhoto'],['toggleWhatsApp','promptWhatsApp'],['toggleSignature','requireSignature']].forEach(function (a) {
-      var el = document.getElementById(a[0]); if (el) el.addEventListener('click', function () { state.settings[a[1]] = !state.settings[a[1]]; saveMessengerData(); updateTogglesUI(); showToast(state.settings[a[1]] ? 'Ajuste activado' : 'Ajuste desactivado', 1600); RutaXAPI.saveSettings(state.settings).catch(function () {}); });
-    });
-    document.querySelectorAll('.color-chip').forEach(function (ch) {
-      ch.addEventListener('click', function () { state.settings.signatureColor = ch.getAttribute('data-color'); saveMessengerData(); updateColorChips(); if (signatureCtx) signatureCtx.strokeStyle = getSignatureColorHex(); showToast('Color cambiado', 1500); RutaXAPI.saveSettings(state.settings).catch(function () {}); });
-    });
-    document.getElementById('changeMessengerBtn').addEventListener('click', function () { closeSettings(); RutaXAPI.clearSession(); localStorage.removeItem(CURRENT_KEY); showSplash(); RutaXAPI.publicList().then(renderSplashFromAPI).catch(renderSplash); });
-    document.getElementById('resetRouteBtn').addEventListener('click', function () {
-      if (!confirm('¿Reiniciar los datos de ' + state.messenger.name + '?')) return;
-      localStorage.removeItem(dataKey(state.messenger.code, 'route')); localStorage.removeItem(dataKey(state.messenger.code, 'events')); localStorage.removeItem(dataKey(state.messenger.code, 'settings'));
-      state.route = []; state.events = []; renderRoute(); renderEvents(); closeSettings(); showToast('Ruta reiniciada');
+    document.getElementById('changeMessengerBtn').addEventListener('click', async function () {
+      try { await RutaXAPI.logout(); closeSettings(); state.messenger = null;
+        localStorage.removeItem(CURRENT_KEY); localStorage.removeItem('rutax_current_v8'); showSplash();
+        RutaXAPI.publicList().then(renderSplashFromAPI).catch(renderSplash);
+      } catch (err) { showToast(err.message || 'No se pudo cerrar sesión'); }
     });
     var csvI = document.getElementById('csvInput'); document.getElementById('csvSelectBtn').addEventListener('click', function () { csvI.click(); });
     csvI.addEventListener('change', function (e) {
@@ -1869,6 +1853,7 @@
 
   function openPinModal(code, name, zone) {
     pinTarget = { code: code, name: name, zone: zone }; pinBuffer = '';
+    document.getElementById('pinDots').innerHTML = '<span></span>'.repeat(code === 'ADMIN' ? 6 : 4);
     document.getElementById('pinAvatar').textContent = code; document.getElementById('pinName').textContent = name; document.getElementById('pinZone').textContent = zone || '—'; document.getElementById('pinError').textContent = ''; updatePinDots();
     var pad = document.getElementById('pinPad'); var html = '';
     for (var i = 1; i <= 9; i++) html += '<button class="pin-key" data-num="' + i + '">' + i + '</button>';
@@ -1878,11 +1863,11 @@
   }
   function closePinModal() { document.getElementById('pinOverlay').classList.remove('active'); pinBuffer = ''; }
   function updatePinDots() { document.querySelectorAll('#pinDots span').forEach(function (d, i) { d.classList.toggle('filled', i < pinBuffer.length); }); }
-  function pinKey(n) { if (pinBuffer.length >= 4) return; pinBuffer += n; updatePinDots(); document.getElementById('pinError').textContent = ''; if (pinBuffer.length === 4) setTimeout(handlePinSubmit, 180); }
+  function pinKey(n) { var length = pinTarget.code === 'ADMIN' ? 6 : 4; if (pinBuffer.length >= length) return; pinBuffer += n; updatePinDots(); document.getElementById('pinError').textContent = ''; if (pinBuffer.length === length) setTimeout(handlePinSubmit, 180); }
   function pinDelete() { pinBuffer = pinBuffer.slice(0, -1); updatePinDots(); }
 
   function handlePinSubmit() {
-    if (pinBuffer.length !== 4) return;
+    if (pinBuffer.length !== (pinTarget.code === 'ADMIN' ? 6 : 4)) return;
     var err = document.getElementById('pinError'); err.style.color = 'rgba(255,255,255,0.7)'; err.textContent = 'Verificando...';
     RutaXAPI.login(pinTarget.code, pinBuffer).then(function (data) {
       if (!data.ok) throw new Error(data.error || 'PIN incorrecto');
@@ -1902,7 +1887,10 @@
     document.getElementById('adminOverlay').classList.add('active'); refreshAdminMensajeros();
   }
   function closeAdminPanel() { document.getElementById('adminOverlay').classList.remove('active'); }
-  function adminLogout() { RutaXAPI.clearSession(); localStorage.removeItem(CURRENT_KEY); localStorage.removeItem('rutax_current_v8'); closeAdminPanel(); showSplash(); RutaXAPI.publicList().then(renderSplashFromAPI).catch(renderSplash); }
+  async function adminLogout() {
+    try { await RutaXAPI.logout(); state.messenger = null; localStorage.removeItem(CURRENT_KEY); localStorage.removeItem('rutax_current_v8'); closeAdminPanel(); closeAdminDesktop(); showSplash(); RutaXAPI.publicList().then(renderSplashFromAPI).catch(renderSplash); }
+    catch(err) { showToast(err.message || 'No se pudo cerrar sesión'); }
+  }
 
   function refreshAdminMensajeros() {
     var box = document.getElementById('adminMensajerosView'); box.innerHTML = '<div class="admin-live-empty">Cargando...</div>';
@@ -1916,7 +1904,7 @@
       html += '<div class="admin-live-empty">Sin mensajeros.</div>';
     } else {
       adminState.messengers.forEach(function (m) {
-        html += '<div class="ms-card' + (m.active ? '' : ' inactive') + '" data-code="' + m.code + '"><div class="ms-avatar">' + m.code + '</div><div class="ms-info"><div class="ms-name">' + m.name + '</div><div class="ms-zone">' + (m.zone || 'Sin zona') + ' · <span class="ms-pin">PIN: ' + m.pin + '</span></div></div><div class="ms-right"><button class="ms-edit-btn" data-action="edit" data-code="' + m.code + '">Editar</button><button class="toggle-switch' + (m.active ? ' on' : '') + '" data-action="toggle" data-code="' + m.code + '"></button></div></div>';
+        html += '<div class="ms-card' + (m.active ? '' : ' inactive') + '" data-code="' + m.code + '"><div class="ms-avatar">' + m.code + '</div><div class="ms-info"><div class="ms-name">' + m.name + '</div><div class="ms-zone">' + (m.zone || 'Sin zona') + ' · <span class="ms-pin">PIN: ••••</span></div></div><div class="ms-right"><button class="ms-edit-btn" data-action="edit" data-code="' + m.code + '">Editar</button><button class="toggle-switch' + (m.active ? ' on' : '') + '" data-action="toggle" data-code="' + m.code + '"></button></div></div>';
       });
     }
     html += '<button class="admin-add-btn" id="adminAddMsBtn">+ Agregar mensajero</button>';
@@ -1936,7 +1924,7 @@
     adminState.editingCode = mm ? mm.code : null;
     document.getElementById('editMessengerTitle').textContent = mm ? 'Editar mensajero' : 'Nuevo mensajero';
     document.getElementById('editMessengerSub').textContent = mm ? 'Cambia sus datos.' : 'Código automático';
-    document.getElementById('editMsCode').value = mm ? mm.code : 'Auto'; document.getElementById('editMsName').value = mm ? mm.name : ''; document.getElementById('editMsZone').value = mm && mm.zone !== 'Sin asignar' ? mm.zone : ''; document.getElementById('editMsPin').value = mm ? mm.pin : '1234';
+    document.getElementById('editMsCode').value = mm ? mm.code : 'Auto'; document.getElementById('editMsName').value = mm ? mm.name : ''; document.getElementById('editMsZone').value = mm && mm.zone !== 'Sin asignar' ? mm.zone : ''; document.getElementById('editMsPin').value = ''; document.getElementById('editMsPin').placeholder = mm ? 'Dejar vacío para conservar PIN' : 'PIN de 4 dígitos';
     var delBtn = document.getElementById('editMsDeleteBtn');
     if (mm) delBtn.style.display = 'block'; else delBtn.style.display = 'none';
     document.getElementById('editMessengerOverlay').classList.add('active');
@@ -1945,7 +1933,7 @@
   function closeEditMessenger() { document.getElementById('editMessengerOverlay').classList.remove('active'); adminState.editingCode = null; }
   function confirmEditMessenger() {
     var n = document.getElementById('editMsName').value.trim(); var z = document.getElementById('editMsZone').value.trim() || 'Sin asignar'; var p = document.getElementById('editMsPin').value.trim();
-    if (!n) { showToast('⚠ Escribe el nombre'); return; } if (!p || p.length < 4) { showToast('⚠ PIN 4 dígitos'); return; }
+    if (!n) { showToast('⚠ Escribe el nombre'); return; } if ((!adminState.editingCode && !/^\d{4}$/.test(p)) || (p && !/^\d{4}$/.test(p))) { showToast('⚠ PIN 4 dígitos'); return; }
     var isNew = adminState.editingCode === null; var pl = { name: n, zone: z, pin: p };
     var promise = isNew ? RutaXAPI.adminAddMessenger(pl) : (pl.code = adminState.editingCode, RutaXAPI.adminUpdateMessenger(pl));
     promise.then(function (d) { closeEditMessenger(); showToast(isNew ? '✓ Creado ' + (d.code || '') : '✓ Actualizado', 2200); refreshAdminMensajeros(); if (document.getElementById('adminDesktopOverlay').classList.contains('active')) loadDesktopMessengers(); }).catch(function (err) { showToast('⚠ ' + (err.message || 'Error'), 2600); });
@@ -2009,7 +1997,7 @@
     
     document.getElementById('editMsDeleteBtn').addEventListener('click', function() {
       var code = adminState.editingCode; if (!code) return;
-      if (!confirm('¿Seguro que quieres eliminar a este mensajero permanentemente?')) return;
+      if (!confirm('¿Seguro que quieres deshabilitar a este mensajero conservando su historial?')) return;
       RutaXAPI.adminDeleteMessenger(code).then(function() {
         showToast('🗑️ Mensajero eliminado');
         closeEditMessenger(); refreshAdminMensajeros();
@@ -2068,7 +2056,7 @@
 
   function renderDesktopMessengerDetail(mm) {
     var main = document.getElementById('adMain'); var routes = desktopAdminState.selectedRoutes; var st = mm.stats || {}; var pend = routes.filter(function (r) { return r.status === 'pending'; }); var del = routes.filter(function (r) { return r.status === 'delivered'; });
-    var html = '<div class="ad-detail-card"><div class="ad-detail-header"><div><div class="ad-detail-name">' + mm.name + '</div><div class="ad-detail-meta">' + mm.code + ' · ' + (mm.zone||'Sin zona') + ' · PIN <strong style="color:var(--ink);font-family:monospace;">' + mm.pin + '</strong></div></div><div class="ad-detail-actions"><button class="ad-btn secondary" id="adEditBtn">✏️ Editar</button><button class="ad-btn ' + (mm.active ? 'danger' : 'primary') + '" id="adToggleBtn">' + (mm.active ? '⏸ Deshabilitar' : '▶ Habilitar') + '</button></div></div><div class="ad-stats-row"><div class="ad-stat"><div class="ad-stat-value">' + routes.length + '</div><div class="ad-stat-label">Rutas</div></div><div class="ad-stat"><div class="ad-stat-value" style="color:var(--green-dark);">' + del.length + '</div><div class="ad-stat-label">Entregadas</div></div><div class="ad-stat"><div class="ad-stat-value">' + pend.length + '</div><div class="ad-stat-label">Pendientes</div></div><div class="ad-stat"><div class="ad-stat-value" style="color:var(--green-dark);">' + (st.signedToday || 0) + '</div><div class="ad-stat-label">Firmas hoy</div></div></div><div style="display:flex;gap:10px;flex-wrap:wrap;"><button class="ad-btn accent" id="adAssignCsvBtn">📁 Asignar ruta CSV</button><button class="ad-btn secondary" id="adRefreshRoutesBtn">🔄 Actualizar</button></div></div>';
+    var html = '<div class="ad-detail-card"><div class="ad-detail-header"><div><div class="ad-detail-name">' + mm.name + '</div><div class="ad-detail-meta">' + mm.code + ' · ' + (mm.zone||'Sin zona') + ' · PIN <strong style="color:var(--ink);font-family:monospace;">••••</strong></div></div><div class="ad-detail-actions"><button class="ad-btn secondary" id="adEditBtn">✏️ Editar</button><button class="ad-btn ' + (mm.active ? 'danger' : 'primary') + '" id="adToggleBtn">' + (mm.active ? '⏸ Deshabilitar' : '▶ Habilitar') + '</button></div></div><div class="ad-stats-row"><div class="ad-stat"><div class="ad-stat-value">' + routes.length + '</div><div class="ad-stat-label">Rutas</div></div><div class="ad-stat"><div class="ad-stat-value" style="color:var(--green-dark);">' + del.length + '</div><div class="ad-stat-label">Entregadas</div></div><div class="ad-stat"><div class="ad-stat-value">' + pend.length + '</div><div class="ad-stat-label">Pendientes</div></div><div class="ad-stat"><div class="ad-stat-value" style="color:var(--green-dark);">' + (st.signedToday || 0) + '</div><div class="ad-stat-label">Firmas hoy</div></div></div><div style="display:flex;gap:10px;flex-wrap:wrap;"><button class="ad-btn accent" id="adAssignCsvBtn">📁 Asignar ruta CSV</button><button class="ad-btn secondary" id="adRefreshRoutesBtn">🔄 Actualizar</button></div></div>';
     html += '<div class="ad-section-title"><span>Rutas del mensajero</span><span style="font-weight:600;text-transform:none;color:var(--muted);">' + routes.length + ' totales</span></div>';
     html += '<div class="ad-routes-toolbar"><input type="text" id="adRoutesSearch" placeholder="🔍 Buscar por cliente, guía, dirección o quién recibió..." value="' + (desktopAdminState.routesFilter || '').replace(/"/g, '&quot;') + '" /><span class="ad-routes-toolbar-count" id="adRoutesCount"></span></div>';
     html += '<div id="adRoutesTableWrap">' + renderRoutesTable(routes, desktopAdminState.routesFilter) + '</div>';
@@ -2157,7 +2145,7 @@
       if (saved && RutaXAPI.isLoggedIn()) {
         RutaXAPI.pull().then(function (data) {
           if (data.role !== 'messenger' && data.role !== 'admin') throw new Error('rol');
-          var info = null; var raw = localStorage.getItem('rutax_info_' + saved); if (raw) { try { info = JSON.parse(raw); } catch (e) {} }
+          var info = data.messenger || null; var raw = localStorage.getItem('rutax_info_' + saved); if (!info && raw) { try { info = JSON.parse(raw); } catch (e) {} }
           if (!info && saved === 'ADMIN') info = { code: 'ADMIN', name: 'Administrador', zone: 'Administración' };
           if (!info) throw new Error('sin info'); state.messenger = info;
           if (data.role === 'admin') { hideSplash(); if (isDesktopViewport()) openAdminDesktop(); else openAdminPanel(); return; }
@@ -2168,8 +2156,27 @@
       } else showSplash();
     } catch (e) { console.error('Init error:', e); }
   }
+
+  window.RutaXUI = {
+    parseCSV: function(text) { return rowsToItems(parseCSV(text)); },
+    toast: showToast,
+    historyCursor: function(){ var sorted=state.events.slice().sort(function(a,b){return b.timestamp-a.timestamp || b.id.localeCompare(a.id);});return sorted[sorted.length-1] || null; },
+    appendHistory: function(events){ var ids=new Set(state.events.map(function(e){return e.id;}));events.forEach(function(e){if(!ids.has(e.id))state.events.push(e);});renderEvents(); },
+    apply: function(data) {
+      if (data.unchanged || !state.messenger || data.messenger.code !== state.messenger.code) return;
+      state.messenger = data.messenger;
+      state.settings = Object.assign({}, DEFAULT_SETTINGS, data.settings || {});
+      if(data.role !== 'messenger') return;
+      // Evita reemplazar el formulario en el que está trabajando el repartidor.
+      if(document.getElementById('detailOverlay').classList.contains('active')) return;
+      state.route = data.route || []; state.events = mergeLocalPhotos(data.events || []);
+      saveMessengerData(); renderHeader(); renderRoute(); renderEvents();
+    }
+  };
+
   document.addEventListener('DOMContentLoaded', init);
 })();
 </script>
+<script src="upgrade.js"></script>
 </body>
 </html>

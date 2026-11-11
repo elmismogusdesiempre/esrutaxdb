@@ -1,0 +1,11 @@
+.env*
+!.env.example
+tests/
+db/
+scripts/
+node_modules/
+migration-data/
+test-results/
+playwright-report/
+README.md
+VALIDACION.md
