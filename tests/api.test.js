@@ -14,6 +14,8 @@ async function request(action,payload={},role='messenger',extra={}) {
   if(p.pathname.endsWith('/rx_profiles')&&p.searchParams.get('code')==='eq.M1')data=[{code:'M1',role:'messenger',active:true}];
   if(p.pathname.endsWith('/rx_settings'))data=[{settings:{allowNoPhoto:false,requireRecipient:true,requireSignature:true}}];
   if(p.pathname.endsWith('/rx_rate_limit'))data=true;
+  if(p.pathname.endsWith('/rx_delete_pending'))data={deleted:JSON.parse(options.body).p_ids,skipped:[]};
+  if(p.pathname.endsWith('/rx_assign_route'))data=JSON.parse(options.body).p_rows.length;
   return new Response(JSON.stringify(data),{status:200});
  };
  const req={method:'POST',headers:{host:'app.example',origin:'https://app.example',cookie:`rx_session=${token}`},body:{action,payload},...extra};
@@ -31,4 +33,17 @@ test('retirar pendientes exige selección válida y envía admin y repartidor de
  const invalid=await request('admin_delete_pending',{code:'M1',ids:[]},'admin');assert.equal(invalid.response.statusCode,400);
  const {response,operations}=await request('admin_delete_pending',{code:'M1',ids:['p1','p1','p2'],admin:'otro'},'admin');assert.equal(response.statusCode,200);
  const op=operations.find(x=>x.path.endsWith('/rx_delete_pending'));assert.deepEqual(op.body,{p_code:'M1',p_ids:['p1','p2'],p_admin:'ADMIN'});
+});
+
+test('configuración realtime usa el repartidor de la sesión e ignora uno enviado por el cliente',async()=>{
+ process.env.SUPABASE_PUBLISHABLE_KEY='sb_publishable_fixture';
+ const {response}=await request('route_live',{code:'OTRO'});assert.equal(response.statusCode,200);
+ const {routeTopic}=await import('../lib/route-live.js');assert.equal(response.body.topic,routeTopic('M1'));assert.ok(!JSON.stringify(response.body).includes('test-only'));
+});
+test('asignar y retirar destinos avisa después de guardar los cambios',async()=>{
+ process.env.SUPABASE_PUBLISHABLE_KEY='sb_publishable_fixture';
+ for(const [action,payload,rpc] of [['admin_assign_route',{code:'M1',mode:'append',items:[{client:'Cliente',address:'Calle'}]},'rx_assign_route'],['admin_delete_pending',{code:'M1',ids:['p1']},'rx_delete_pending']]){
+  const {response,operations}=await request(action,payload,'admin');assert.equal(response.statusCode,200);
+  const mutation=operations.findIndex(x=>x.path.endsWith('/'+rpc)),broadcast=operations.findIndex(x=>x.path.endsWith('/api/broadcast'));assert.ok(mutation>=0&&broadcast>mutation);
+ }
 });

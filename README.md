@@ -5,7 +5,7 @@ Mapas gratuitos Leaflet/OpenStreetMap; datos en Supabase; evidencias en Drive. P
 ## Cambios
 
 - Repartidor: PIN de 4 dígitos, tema, foto de perfil y cierre de sesión con revocación en servidor.
-- Admin: PIN de 6 dígitos, repartidores, CSV, entregas y ajustes operativos. PIN cifrado con scrypt y sal, sin recuperación ni visualización en administración; puede restablecerse.
+- Admin: PIN de 6 dígitos, repartidores, CSV, entregas y ajustes operativos. «Agregar repartidor» está disponible en la barra lateral de escritorio y en la vista móvil. PIN cifrado con scrypt y sal, sin recuperación ni visualización en administración; puede restablecerse.
 - Ajustes operativos: nombre de quien recibe, permitir entrega sin foto, preguntar WhatsApp, firma, color de firma y región de geocodificación. Aplicar una o varias opciones a uno, varios o todos los repartidores. «Todos» también cambia los valores para nuevos repartidores.
 - Avisos masivos: rojo urgente, amarillo informativo, verde amigable; bandeja y push a dispositivos autorizados.
 - Selección individual/múltiple de entregas para eliminarlas. Baja lógica con fecha y admin responsable: desaparecen del historial y los indicadores; no reabre paquetes ni elimina fotos inmediatamente.
@@ -23,6 +23,7 @@ En **Vercel → esrutaxdb → Settings → Environment Variables**, configurar p
 | Variable | Valor |
 | --- | --- |
 | `SUPABASE_URL` | `https://uwjtzttzggdeqoircmbi.supabase.co` |
+| `SUPABASE_PUBLISHABLE_KEY` | Clave pública del proyecto para recibir avisos de actualización de ruta. |
 | `SUPABASE_SERVICE_ROLE_KEY` | Clave de servidor del proyecto, desde Supabase → Project Settings → API Keys. Usar legacy `service_role`; nunca la publishable/anon. |
 | `INITIAL_ADMIN_PIN` | Elegir exactamente 6 dígitos en esta configuración privada. |
 | `DRIVE_BRIDGE_URL` | URL `/exec` del nuevo Apps Script descrito abajo. |
@@ -91,3 +92,15 @@ CHROMIUM_PATH=/usr/bin/chromium npx playwright test
 ```
 
 Las pruebas de navegador usan una API simulada. También se probaron las operaciones SQL en la base real dentro de una transacción revertida. Faltan pruebas reales de Drive, Web Push y despliegue Vercel hasta configurar las credenciales.
+
+## Actualizaciones automáticas de destinos
+
+Al asignar un CSV o retirar pendientes, Vercel confirma primero la operación en la base y envía un aviso de Supabase Realtime al repartidor afectado. Con la app abierta, el aviso hace que consulte su ruta mediante la sesión habitual y actualice la lista y el mapa, con un mensaje breve «Ruta actualizada». No necesita aceptar una ventana ni recargar.
+
+La señal no contiene nombres, direcciones ni identificadores de destinos. El nombre de canal es opaco, derivado en el servidor con HMAC; se entrega únicamente a la sesión de ese repartidor. El cliente usa una clave publishable sin acceso a las tablas. Los datos siguen pasando por la API con validación de sesión y propietario; no se exponen claves de servidor ni se abre el acceso a las tablas.
+
+Si se pierde la conexión en tiempo real, sigue la sincronización por versión cada 45 segundos mientras la página esté visible. Al volver al primer plano se consultan los cambios de inmediato. Con la app cerrada o sin conexión no se promete una actualización instantánea; no se añaden notificaciones push para cada cambio de ruta.
+
+Las fotos, firma y campos de una entrega abierta permanecen intactos. Si administración retira precisamente ese destino, aparece un aviso en el formulario y se evita enviar una entrega sobre una asignación retirada. Las evidencias locales pendientes de subida y los destinos manuales sin confirmar se conservan al refrescar.
+
+Realtime consume las cuotas incluidas del proyecto; no se ha contratado ningún plan ni servicio adicional. Se usa una suscripción por app del repartidor y un aviso pequeño por cambio de ruta, en lugar de aumentar la frecuencia de consultas a la base.

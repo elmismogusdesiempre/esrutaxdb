@@ -1,3 +1,4 @@
+import {routeLiveConfig,notifyRouteChanged} from '../lib/route-live.js';
 import { db, eq, rpc, upsert, allRows } from '../lib/db.js';
 import { sha,newToken,hashPin,verifyPin,fail,text,validPin,validCode,settingsPatch,cleanPackage,validateDelivery,validatePush,publicProfile } from '../lib/core.js';
 import { sendNotice } from '../lib/push.js';
@@ -68,6 +69,7 @@ export default async function handler(req,res) {
         await db(`rx_push?${filter(p.code)}&endpoint=eq.${eq(payload.endpoint||'')}`,{method:'DELETE'});
         await db(`rx_sessions?token_hash=eq.${hash}`,{method:'DELETE'});cookie(res,'',0);break;
       case 'pull': result=await pull(p,payload.version);break;
+      case 'route_live': if(p.role!=='messenger')fail('Solo repartidores',403);result={ok:true,...routeLiveConfig(p.code)};break;
       case 'delivery_config': result.settings=await effective(p);break;
       case 'history': {
         const before=Number(payload.before),id=text(payload.id,120);
@@ -160,14 +162,14 @@ export default async function handler(req,res) {
         // Reemplazar solo archiva pendientes; nunca elimina evidencias.
         if(!['append','replace'].includes(payload.mode)) fail('Modo inválido');
         const items=payload.items.map((item,i)=>cleanPackage({...item,id:'pkg-'+newToken(),order:i+1,fromCSV:true},i));
-        result.added=await rpc('rx_assign_route',{p_code:target.code,p_rows:items,p_replace:payload.mode==='replace'});break;
+        result.added=await rpc('rx_assign_route',{p_code:target.code,p_rows:items,p_replace:payload.mode==='replace'});await notifyRouteChanged(target.code);break;
       }
       case 'admin_delete_pending': {
         const code=text(payload.code,40);
         if(!validCode(code)||!Array.isArray(payload.ids)||!payload.ids.length||payload.ids.length>1000||payload.ids.some(id=>typeof id!=='string'||!id.trim()||id.length>120)) fail('Selecciona entre 1 y 1000 destinos pendientes');
         const target=await profile(code);if(!target||target.role!=='messenger') fail('Repartidor no disponible');
         const removed=await rpc('rx_delete_pending',{p_code:code,p_ids:[...new Set(payload.ids)],p_admin:p.code});
-        result={ok:true,...removed};break;
+        result={ok:true,...removed};if(removed.deleted?.length)await notifyRouteChanged(code);break;
       }
       case 'admin_get_routes': {
         const code=text(payload.code,40);
