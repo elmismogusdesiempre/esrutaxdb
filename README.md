@@ -11,6 +11,8 @@ Mapas gratuitos Leaflet/OpenStreetMap; datos en Supabase; evidencias en Drive. P
 - Selección individual/múltiple de entregas para eliminarlas. Baja lógica con fecha y admin responsable: desaparecen del historial y los indicadores; no reabre paquetes ni elimina fotos inmediatamente.
 - Evidencias pendientes en IndexedDB, con reintentos idempotentes. Se necesita conexión para validar reglas antes de registrar una entrega; no se promete funcionamiento completo sin conexión.
 - Historial paginado de 100 en 100 y sincronización por versión para evitar descargar datos sin cambios.
+- En la tabla de rutas del admin: selección individual, múltiple o de todos los pendientes visibles para retirarlos de la ruta. El servidor omite destinos que ya cambiaron de estado y conserva el historial y las evidencias.
+- Mapa del repartidor bloqueado inicialmente para permitir el scroll de la página. Doble toque o «Activar mapa» habilita movimiento y zoom; «Volver a desplazar», salir del mapa o 15 segundos sin usarlo lo bloquean de nuevo.
 
 ## Configurar Vercel antes de fusionar con main
 
@@ -76,7 +78,7 @@ El contador del admin indica solicitudes aceptadas por el proveedor, no visualiz
 
 Tablas `rx_*` con RLS y permisos denegados a `anon`/`authenticated`. Vercel valida rol, sesión y propietario antes de usar su clave de servidor. Son sesiones propias con PIN; no usa Supabase Auth. Cookies HttpOnly/Secure/SameSite=Strict, tokens aleatorios guardados como SHA-256, límite persistente de intentos y sesiones revocables.
 
-SQL ya aplicado, en orden: `db/schema.sql`, `db/atomic-operations.sql`, `db/efficient-sync.sql`, `db/admin-indexes.sql`. **No volver a ejecutar estos archivos en esrutaxdb.** Solo documentan el esquema para revisión o una instalación vacía distinta.
+SQL ya aplicado, en orden: `db/schema.sql`, `db/atomic-operations.sql`, `db/efficient-sync.sql`, `db/admin-indexes.sql` y `db/delete-pending.sql`. **No volver a ejecutar estos archivos en esrutaxdb.** Solo documentan el esquema para revisión o una instalación vacía distinta.
 
 ## Pruebas
 

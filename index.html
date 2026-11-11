@@ -664,7 +664,13 @@
         </div>
         <button class="optimize-btn" id="optimizeBtn">🎯 Optimizar</button>
       </div>
-      <div class="map-container" id="routeMap"></div>
+      <div class="map-shell" id="mapShell" data-interactive="false">
+        <div class="map-container" id="routeMap"></div>
+        <div class="map-guard" id="mapGuard" hidden>
+          <div class="map-guard-card"><strong>Desliza para ver tus clientes</strong><span>Doble toque para mover o ampliar el mapa</span><button type="button" id="mapActivateBtn" aria-controls="routeMap">Activar mapa</button></div>
+        </div>
+        <button type="button" class="map-relock" id="mapRelockBtn" aria-controls="routeMap" hidden>↕ Volver a desplazar</button>
+      </div>
       <div class="optimization-progress hidden" id="optimizeProgress">
         <div class="spinner"></div>
         <div class="op-text" id="optimizeText">Optimizando...</div>
@@ -1056,10 +1062,11 @@
   var desktopAdminState = {
     activeTab: 'mensajeros', messengers: [], selectedCode: null, selectedRoutes: [],
     live: [], liveSince: null, liveUntil: null, filter: '', routesFilter: '',
-    csvTarget: null, csvItems: null, csvMode: 'append'
+    csvTarget: null, csvItems: null, csvMode: 'append', selectedRouteIds: new Set(), deletingRoutes: false
   };
   var undoState = { evt: null, reason: null };
   var routeMapInstance = null, routeMapLayer = null;
+  var mapInteractionActive = false, mapIdleTimer = null;
   var isOptimizing = false;
 
   var MAX_EVENTS_WITH_LOCAL_PHOTOS = 8;
@@ -1302,9 +1309,43 @@
     renderMap();
   }
 
+  function setMapInteraction(active) {
+    mapInteractionActive = !!active && !!routeMapInstance;
+    clearTimeout(mapIdleTimer);
+    if(routeMapInstance) ['dragging','touchZoom','scrollWheelZoom','boxZoom','keyboard'].forEach(function(key){if(routeMapInstance[key]) routeMapInstance[key][mapInteractionActive ? 'enable' : 'disable']();});
+    var available=!!routeMapInstance;
+    document.getElementById('mapShell').dataset.interactive=String(mapInteractionActive);
+    document.getElementById('mapGuard').hidden=!available||mapInteractionActive;
+    document.getElementById('mapRelockBtn').hidden=!mapInteractionActive;
+    document.getElementById('routeMap').inert=available&&!mapInteractionActive;
+    document.getElementById('routeMap').style.touchAction=mapInteractionActive?'none':'pan-y';
+    if(mapInteractionActive) mapIdleTimer=setTimeout(function(){setMapInteraction(false);},15000);
+  }
+  function setupMapInteraction() {
+    var shell=document.getElementById('mapShell'),guard=document.getElementById('mapGuard');
+    var start=null,lastTap=null;
+    document.getElementById('mapActivateBtn').addEventListener('click',function(){setMapInteraction(true);});
+    document.getElementById('mapRelockBtn').addEventListener('click',function(){setMapInteraction(false);});
+    guard.addEventListener('pointerdown',function(e){if(!e.isPrimary)return;start={x:e.clientX,y:e.clientY,at:Date.now(),moved:false};});
+    guard.addEventListener('pointermove',function(e){if(start && Math.hypot(e.clientX-start.x,e.clientY-start.y)>10)start.moved=true;},{passive:true});
+    guard.addEventListener('pointercancel',function(){start=null;lastTap=null;});
+    guard.addEventListener('pointerup',function(e){
+      if(!start||start.moved||Date.now()-start.at>400){start=null;lastTap=null;return;}
+      var tap={x:e.clientX,y:e.clientY,at:Date.now()};
+      if(lastTap&&tap.at-lastTap.at<350&&Math.hypot(tap.x-lastTap.x,tap.y-lastTap.y)<35){lastTap=null;setMapInteraction(true);}else lastTap=tap;
+      start=null;
+    });
+    shell.addEventListener('pointerdown',function(){if(mapInteractionActive)setMapInteraction(true);},{passive:true});
+    shell.addEventListener('pointermove',function(){if(mapInteractionActive)setMapInteraction(true);},{passive:true});
+    shell.addEventListener('wheel',function(){if(mapInteractionActive)setMapInteraction(true);},{passive:true});
+    window.addEventListener('scroll',function(){if(mapInteractionActive)setMapInteraction(false);},{passive:true});
+    document.addEventListener('pointerdown',function(e){if(mapInteractionActive&&!shell.contains(e.target))setMapInteraction(false);},{passive:true});
+    window.addEventListener('rutax:logout',function(){setMapInteraction(false);});
+  }
+
   function renderMap() {
     var container = document.getElementById('routeMap'); if (!container) return;
-    if (typeof L === 'undefined') { container.innerHTML = '<div class="map-empty"><div class="map-empty-icon">🗺️</div><div>El mapa no está disponible<br><span style="font-size:11px;">Comprueba tu conexión</span></div></div>'; return; }
+    if (typeof L === 'undefined') { setMapInteraction(false); container.innerHTML = '<div class="map-empty"><div class="map-empty-icon">🗺️</div><div>El mapa no está disponible<br><span style="font-size:11px;">Comprueba tu conexión</span></div></div>'; return; }
     var pending = state.route.filter(function (p) { return p.status !== 'delivered' && typeof p.lat === 'number' && typeof p.lng === 'number'; }).sort(function (a, b) { return (a.order || 0) - (b.order || 0); }).slice(0, MAX_PINS_ON_MAP);
     var subtitle = document.getElementById('mapSubtitle');
     if (subtitle) {
@@ -1313,12 +1354,13 @@
       else if (totalPend > pending.length) subtitle.textContent = 'Próximas ' + pending.length + ' de ' + totalPend + ' paradas';
       else subtitle.textContent = 'Próximas ' + pending.length + ' paradas';
     }
-    if (!pending.length) { if (routeMapInstance) { routeMapInstance.remove(); routeMapInstance = null; routeMapLayer = null; } container.innerHTML = '<div class="map-empty"><div class="map-empty-icon">🗺️</div><div>Sin coordenadas aún<br><span style="font-size:11px;">Toca "Optimizar" para geolocalizar</span></div></div>'; return; }
+    if (!pending.length) { if (routeMapInstance) { routeMapInstance.remove(); routeMapInstance = null; routeMapLayer = null; } setMapInteraction(false); container.innerHTML = '<div class="map-empty"><div class="map-empty-icon">🗺️</div><div>Sin coordenadas aún<br><span style="font-size:11px;">Toca "Optimizar" para geolocalizar</span></div></div>'; return; }
     if (!routeMapInstance) {
       container.innerHTML = '';
-      routeMapInstance = L.map(container, { zoomControl: true, attributionControl: false });
+      routeMapInstance = L.map(container, { zoomControl: true, attributionControl: false, dragging:false, touchZoom:false, scrollWheelZoom:false, doubleClickZoom:false, boxZoom:false, keyboard:false });
       L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19, attribution: '© OpenStreetMap' }).addTo(routeMapInstance);
     }
+    setMapInteraction(mapInteractionActive);
     if (routeMapLayer) routeMapInstance.removeLayer(routeMapLayer);
     routeMapLayer = L.layerGroup().addTo(routeMapInstance);
     var latlngs = [];
@@ -1331,7 +1373,7 @@
       L.marker([currentGPS.lat, currentGPS.lng], { icon: ui }).bindPopup('<b>Tu ubicación</b>').addTo(routeMapLayer); latlngs.unshift([currentGPS.lat, currentGPS.lng]);
     }
     if (latlngs.length > 1) L.polyline(latlngs, { color: '#FF6B35', weight: 3, opacity: 0.75, dashArray: '6,6' }).addTo(routeMapLayer);
-    try { routeMapInstance.fitBounds(L.latLngBounds(latlngs), { padding: [30, 30], maxZoom: 15 }); setTimeout(function () { if (routeMapInstance) routeMapInstance.invalidateSize(); }, 120); } catch (e) {}
+    try { if(!mapInteractionActive) routeMapInstance.fitBounds(L.latLngBounds(latlngs), { padding: [30, 30], maxZoom: 15 }); setTimeout(function () { if (routeMapInstance) routeMapInstance.invalidateSize(); }, 120); } catch (e) {}
   }
 
   function haversine(lat1, lng1, lat2, lng2) {
@@ -1798,6 +1840,7 @@
   function setupEventListeners() {
     document.querySelectorAll('.tab').forEach(function (tab) {
       tab.addEventListener('click', function () {
+        setMapInteraction(false);
         document.querySelectorAll('.tab').forEach(function (x) { x.classList.remove('active'); }); document.querySelectorAll('.view').forEach(function (v) { v.classList.remove('active'); });
         tab.classList.add('active'); var targetId = tab.getAttribute('data-tab') === 'ruta' ? 'viewRuta' : 'viewRegistro'; document.getElementById(targetId).classList.add('active'); updateFabVisibility();
         if (targetId === 'viewRuta') setTimeout(renderMap, 50);
@@ -2034,14 +2077,19 @@
     var main = document.getElementById('adMain'); var mm = desktopAdminState.messengers.find(function (x) { return x.code === desktopAdminState.selectedCode; });
     if (!mm) { main.innerHTML = '<div class="ad-empty"><div class="ad-empty-icon">👥</div><div>Selecciona un mensajero</div></div>'; return; }
     main.innerHTML = '<div class="ad-empty"><div class="ad-empty-icon">⏳</div><div>Cargando rutas...</div></div>';
-    RutaXAPI.adminGetRoutes(mm.code).then(function (data) { desktopAdminState.selectedRoutes = data.routes || []; desktopAdminState.routesFilter = ''; renderDesktopMessengerDetail(mm); }).catch(function (err) { main.innerHTML = '<div class="ad-empty"><div class="ad-empty-icon">⚠️</div><div>' + (err.message || 'Error') + '</div></div>'; });
+    RutaXAPI.adminGetRoutes(mm.code).then(function (data) { if(desktopAdminState.selectedCode!==mm.code)return; desktopAdminState.selectedRoutes = data.routes || []; desktopAdminState.selectedRouteIds.clear(); desktopAdminState.routesFilter = ''; renderDesktopMessengerDetail(mm); }).catch(function (err) { main.innerHTML = '<div class="ad-empty"><div class="ad-empty-icon">⚠️</div><div>' + (err.message || 'Error') + '</div></div>'; });
   }
 
-  function renderRoutesTable(routes, filter) {
+  function filteredDesktopRoutes(routes,filter) {
     var q = normalizeQuery(filter || '');
-    var filtered = routes.filter(function (r) { if (!q) return true; var hay = normalizeQuery([r.client || '', r.guide || '', r.address || '', (r.event && r.event.recipient) || '', (r.event && r.event.note) || '', (r.event && r.event.guide) || '', (r.event && r.event.undoReason) || ''].join(' ')); return hay.indexOf(q) >= 0; });
+    return routes.filter(function (r) { if (!q) return true; var hay = normalizeQuery([r.client || '', r.guide || '', r.address || '', (r.event && r.event.recipient) || '', (r.event && r.event.note) || '', (r.event && r.event.guide) || '', (r.event && r.event.undoReason) || ''].join(' ')); return hay.indexOf(q) >= 0; });
+  }
+  function routeHtml(value){return String(value == null ? '' : value).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});}
+
+  function renderRoutesTable(routes, filter) {
+    var q = normalizeQuery(filter || ''), filtered=filteredDesktopRoutes(routes,filter);
     if (!filtered.length) return '<div class="ad-empty" style="padding:40px 20px;"><div class="ad-empty-icon">🔍</div><div>Sin resultados' + (q ? ' para "' + filter + '"' : '') + '</div></div>';
-    var html = '<table class="ad-table"><thead><tr><th style="width:56px;">Foto</th><th>#</th><th>Guía</th><th>Cliente</th><th>Dirección</th><th>Tipo</th><th>Estado</th></tr></thead><tbody>';
+    var html = '<table class="ad-table"><thead><tr><th style="width:42px;"><input type="checkbox" id="adSelectVisiblePending" aria-label="Seleccionar todos los pendientes visibles"></th><th style="width:56px;">Foto</th><th>#</th><th>Guía</th><th>Cliente</th><th>Dirección</th><th>Tipo</th><th>Estado</th></tr></thead><tbody>';
     var sorted = filtered.slice().sort(function (a, b) { return a.order - b.order; });
     sorted.forEach(function (r) {
       var hasEvt = !!r.event; var photoUrl = hasEvt && r.event.photos && r.event.photos.length ? r.event.photos[0] : null;
@@ -2049,20 +2097,49 @@
       var evtStatus = r.event ? r.event.status : null; var statusLbl, statusCol;
       if (evtStatus === 'undone') { statusLbl = '↺ Anulada'; statusCol = '#6b7280'; } else if (r.status === 'delivered') { statusLbl = '✓ Entregado'; statusCol = 'var(--green-dark)'; } else if (r.status === 'issue') { statusLbl = '⚠ Novedad'; statusCol = '#b45309'; } else if (r.retry) { statusLbl = '🔁 Reintentar'; statusCol = '#b45309'; } else { statusLbl = '○ Pendiente'; statusCol = 'var(--muted)'; }
       var sigBadge = hasEvt && r.event.signed ? ' <span style="font-size:11px;">✍️</span>' : ''; var actionBadge = hasEvt ? '<span class="ad-row-action-badge">▶ Ver</span>' : '';
-      html += '<tr class="' + (hasEvt ? 'ad-row-clickable' : '') + '" data-ruta-id="' + r.id + '"><td>' + thumbCell + '</td><td style="font-weight:700;color:var(--muted);">' + r.order + '</td><td style="font-family:monospace;font-weight:600;">' + (r.guide || '—') + '</td><td>' + (r.client || '—') + '</td><td style="color:var(--muted);">' + (r.address || '—') + '</td><td>' + (r.type === 'pickup' ? '<span style="background:#ede9fe;color:var(--purple);padding:2px 6px;border-radius:6px;font-size:10px;font-weight:700;">📤</span>' : '<span style="color:var(--muted);font-size:11px;">📦</span>') + '</td><td style="font-weight:700;color:' + statusCol + ';">' + statusLbl + sigBadge + actionBadge + '</td></tr>';
+      var checked=desktopAdminState.selectedRouteIds.has(r.id);
+      var checkbox='<input type="checkbox" data-select-route="'+routeHtml(r.id)+'" aria-label="Seleccionar pendiente '+routeHtml(r.guide||r.client||r.id)+'" '+(checked?'checked ':'')+(r.status==='pending'?'':'disabled title="Solo se pueden retirar destinos pendientes"')+'>';
+      html += '<tr class="' + (hasEvt ? 'ad-row-clickable ' : '') + (checked?'ad-row-selected':'') + '" data-ruta-id="' + r.id + '"><td>' + checkbox + '</td><td>' + thumbCell + '</td><td style="font-weight:700;color:var(--muted);">' + r.order + '</td><td style="font-family:monospace;font-weight:600;">' + (r.guide || '—') + '</td><td>' + (r.client || '—') + '</td><td style="color:var(--muted);">' + (r.address || '—') + '</td><td>' + (r.type === 'pickup' ? '<span style="background:#ede9fe;color:var(--purple);padding:2px 6px;border-radius:6px;font-size:10px;font-weight:700;">📤</span>' : '<span style="color:var(--muted);font-size:11px;">📦</span>') + '</td><td style="font-weight:700;color:' + statusCol + ';">' + statusLbl + sigBadge + actionBadge + '</td></tr>';
     });
     html += '</tbody></table>'; return html;
   }
 
-  function wireRouteRows() { document.querySelectorAll('#adRoutesTableWrap tr.ad-row-clickable').forEach(function (row) { row.addEventListener('click', function () { var rid = row.getAttribute('data-ruta-id'); var route = desktopAdminState.selectedRoutes.find(function (r) { return r.id === rid; }); if (route && route.event) openEventDetail(route.event); }); }); }
+  function updatePendingSelection() {
+    var ids=desktopAdminState.selectedRouteIds;
+    var visible=filteredDesktopRoutes(desktopAdminState.selectedRoutes,desktopAdminState.routesFilter).filter(function(r){return r.status==='pending';});
+    var header=document.getElementById('adSelectVisiblePending'),button=document.getElementById('adDeletePendingBtn'),count=document.getElementById('adPendingSelectedCount');
+    if(header){var n=visible.filter(function(r){return ids.has(r.id);}).length;header.checked=visible.length>0&&n===visible.length;header.indeterminate=n>0&&n<visible.length;header.disabled=!visible.length||desktopAdminState.deletingRoutes;}
+    if(button){button.disabled=!ids.size||desktopAdminState.deletingRoutes;button.textContent=desktopAdminState.deletingRoutes?'Eliminando…':'Eliminar pendientes'+(ids.size?' ('+ids.size+')':'');}
+    if(count)count.textContent=ids.size+' seleccionado'+(ids.size===1?'':'s');
+  }
+  function wireRouteRows() {
+    document.querySelectorAll('#adRoutesTableWrap tr.ad-row-clickable').forEach(function(row){row.onclick=function(e){if(e.target.closest('input,button,label'))return;var route=desktopAdminState.selectedRoutes.find(function(r){return r.id===row.dataset.rutaId;});if(route&&route.event)openEventDetail(route.event);};});
+    document.querySelectorAll('#adRoutesTableWrap [data-select-route]').forEach(function(box){box.disabled=box.disabled||desktopAdminState.deletingRoutes;box.onchange=function(){if(box.checked)desktopAdminState.selectedRouteIds.add(box.dataset.selectRoute);else desktopAdminState.selectedRouteIds.delete(box.dataset.selectRoute);box.closest('tr').classList.toggle('ad-row-selected',box.checked);updatePendingSelection();};});
+    var all=document.getElementById('adSelectVisiblePending');
+    if(all)all.onchange=function(){document.querySelectorAll('#adRoutesTableWrap [data-select-route]:not(:disabled)').forEach(function(box){box.checked=all.checked;if(all.checked)desktopAdminState.selectedRouteIds.add(box.dataset.selectRoute);else desktopAdminState.selectedRouteIds.delete(box.dataset.selectRoute);box.closest('tr').classList.toggle('ad-row-selected',box.checked);});updatePendingSelection();};
+    updatePendingSelection();
+  }
+  async function deleteSelectedPending(mm) {
+    var ids=Array.from(desktopAdminState.selectedRouteIds);if(!ids.length||desktopAdminState.deletingRoutes)return;
+    if(!confirm('¿Retirar '+ids.length+' destino(s) pendientes de la ruta de '+mm.name+'?'))return;
+    desktopAdminState.deletingRoutes=true;wireRouteRows();
+    try {
+      var result=await RutaXAPI.adminDeletePending(mm.code,ids);
+      showToast(result.deleted.length+' destino(s) retirados'+(result.skipped.length?' · Algunos ya no estaban pendientes':''),3500);
+      if(desktopAdminState.selectedCode===mm.code){var data=await RutaXAPI.adminGetRoutes(mm.code);if(desktopAdminState.selectedCode!==mm.code)return;desktopAdminState.selectedRoutes=data.routes||[];desktopAdminState.selectedRouteIds.clear();renderDesktopMessengerDetail(mm);}
+    }catch(err){showToast(err.message||'No se pudieron retirar los destinos',3500);}
+    finally{desktopAdminState.deletingRoutes=false;wireRouteRows();document.querySelectorAll('#adRoutesTableWrap [data-select-route]').forEach(function(box){var r=desktopAdminState.selectedRoutes.find(function(r){return r.id===box.dataset.selectRoute;});box.disabled=!r||r.status!=='pending';});updatePendingSelection();}
+  }
 
   function renderDesktopMessengerDetail(mm) {
     var main = document.getElementById('adMain'); var routes = desktopAdminState.selectedRoutes; var st = mm.stats || {}; var pend = routes.filter(function (r) { return r.status === 'pending'; }); var del = routes.filter(function (r) { return r.status === 'delivered'; });
     var html = '<div class="ad-detail-card"><div class="ad-detail-header"><div class="rx-identity">' + RutaXPeople.avatar(mm, 'ms-avatar') + '<div><div class="ad-detail-name">' + mm.name + '</div><div class="ad-detail-meta">' + mm.code + ' · ' + (mm.zone||'Sin zona') + ' · PIN <strong style="color:var(--ink);font-family:monospace;">••••</strong></div></div></div><div class="ad-detail-actions"><button class="ad-btn secondary" id="adEditBtn">✏️ Editar</button><button class="ad-btn ' + (mm.active ? 'danger' : 'primary') + '" id="adToggleBtn">' + (mm.active ? '⏸ Deshabilitar' : '▶ Habilitar') + '</button></div></div><div class="ad-stats-row"><div class="ad-stat"><div class="ad-stat-value">' + routes.length + '</div><div class="ad-stat-label">Rutas</div></div><div class="ad-stat"><div class="ad-stat-value" style="color:var(--green-dark);">' + del.length + '</div><div class="ad-stat-label">Entregadas</div></div><div class="ad-stat"><div class="ad-stat-value">' + pend.length + '</div><div class="ad-stat-label">Pendientes</div></div><div class="ad-stat"><div class="ad-stat-value" style="color:var(--green-dark);">' + (st.signedToday || 0) + '</div><div class="ad-stat-label">Firmas hoy</div></div></div><div style="display:flex;gap:10px;flex-wrap:wrap;"><button class="ad-btn accent" id="adAssignCsvBtn">📁 Asignar ruta CSV</button><button class="ad-btn secondary" id="adRefreshRoutesBtn">🔄 Actualizar</button></div></div>';
     html += '<div class="ad-section-title"><span>Rutas del mensajero</span><span style="font-weight:600;text-transform:none;color:var(--muted);">' + routes.length + ' totales</span></div>';
     html += '<div class="ad-routes-toolbar"><input type="text" id="adRoutesSearch" placeholder="🔍 Buscar por cliente, guía, dirección o quién recibió..." value="' + (desktopAdminState.routesFilter || '').replace(/"/g, '&quot;') + '" /><span class="ad-routes-toolbar-count" id="adRoutesCount"></span></div>';
+    html += '<div class="ad-pending-actions"><span id="adPendingSelectedCount">0 seleccionados</span><button class="rx-btn danger" id="adDeletePendingBtn" disabled>Eliminar pendientes</button><span class="ad-pending-help">Solo destinos pendientes; puedes seleccionar uno, varios o todos los visibles.</span></div>';
     html += '<div id="adRoutesTableWrap">' + renderRoutesTable(routes, desktopAdminState.routesFilter) + '</div>';
     main.innerHTML = html; updateRoutesCount();
+    document.getElementById('adDeletePendingBtn').addEventListener('click',function(){deleteSelectedPending(mm);});
     document.getElementById('adEditBtn').addEventListener('click', function () { openEditMessenger(mm); });
     document.getElementById('adToggleBtn').addEventListener('click', function () { RutaXAPI.adminUpdateMessenger({ code: mm.code, active: !mm.active }).then(function () { mm.active = !mm.active; showToast(mm.active ? '✓ Habilitado' : '⏸ Deshabilitado', 1600); renderDesktopSidebar(); renderDesktopMessengerDetail(mm); }).catch(function (err) { showToast('⚠ ' + (err.message || 'Error'), 2400); }); });
     document.getElementById('adAssignCsvBtn').addEventListener('click', function () { openCsvModal(mm); });
@@ -2141,7 +2218,7 @@
 
   function init() {
     try {
-      setupPhotoInput(); setupEventListeners(); setupAdminEvents(); setupDesktopAdminEvents(); document.getElementById('pinBackBtn').addEventListener('click', closePinModal);
+      setupMapInteraction(); setupPhotoInput(); setupEventListeners(); setupAdminEvents(); setupDesktopAdminEvents(); document.getElementById('pinBackBtn').addEventListener('click', closePinModal);
       RutaXAPI.publicList().then(renderSplashFromAPI).catch(function () { renderSplash(); });
       var saved = localStorage.getItem('rutax_current_v8');
       if (saved && RutaXAPI.isLoggedIn()) {

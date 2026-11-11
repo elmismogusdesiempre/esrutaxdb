@@ -162,6 +162,13 @@ export default async function handler(req,res) {
         const items=payload.items.map((item,i)=>cleanPackage({...item,id:'pkg-'+newToken(),order:i+1,fromCSV:true},i));
         result.added=await rpc('rx_assign_route',{p_code:target.code,p_rows:items,p_replace:payload.mode==='replace'});break;
       }
+      case 'admin_delete_pending': {
+        const code=text(payload.code,40);
+        if(!validCode(code)||!Array.isArray(payload.ids)||!payload.ids.length||payload.ids.length>1000||payload.ids.some(id=>typeof id!=='string'||!id.trim()||id.length>120)) fail('Selecciona entre 1 y 1000 destinos pendientes');
+        const target=await profile(code);if(!target||target.role!=='messenger') fail('Repartidor no disponible');
+        const removed=await rpc('rx_delete_pending',{p_code:code,p_ids:[...new Set(payload.ids)],p_admin:p.code});
+        result={ok:true,...removed};break;
+      }
       case 'admin_get_routes': {
         const code=text(payload.code,40);
         const [rows,events]=await Promise.all([allRows(`rx_packages?${filter(code)}&deleted_at=is.null&order=position.asc`),allRows(`rx_events?${filter(code)}&deleted_at=is.null&order=timestamp.desc&select=data`)]);
