@@ -3,6 +3,24 @@
  * Desplegar aplicación web: ejecutar como propietario, acceso cualquiera.
  * La llamada se autentica mediante secreto únicamente desde Vercel.
  */
+/** Ejecutar una vez desde el editor. La salida con el secreto es privada: no compartir por chat. */
+function configurarRutaX() {
+  var props=PropertiesService.getScriptProperties();
+  var folderId=props.getProperty('DRIVE_ROOT_FOLDER_ID');
+  var folder=folderId?DriveApp.getFolderById(folderId):DriveApp.createFolder('RutaX_Evidencias_Supabase');
+  if(!folderId) props.setProperty('DRIVE_ROOT_FOLDER_ID',folder.getId());
+  var secret=props.getProperty('DRIVE_BRIDGE_SECRET');
+  if(!secret) {
+    secret=(Utilities.getUuid()+Utilities.getUuid()).replace(/-/g,'');
+    props.setProperty('DRIVE_BRIDGE_SECRET',secret);
+  }
+  activarRetencion30Dias();
+  console.log('Carpeta de evidencias: '+folder.getUrl());
+  console.log('Retención: evidencias nuevas a papelera después de 30 días.');
+  console.log('Copia el siguiente valor SOLO a Vercel como DRIVE_BRIDGE_SECRET. No lo compartas en el chat.');
+  console.log(secret);
+}
+
 function doPost(e) {
   try {
     var b=JSON.parse(e.postData.contents),props=PropertiesService.getScriptProperties();
