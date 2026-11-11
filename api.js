@@ -9,6 +9,8 @@ async function apiRequest(action,payload={}) {
     if(response.status===401){localStorage.removeItem(TOKEN_KEY);activeSession=false;}
     throw Object.assign(new Error(data.error||'Error del servidor'),{status:response.status});
   }
+  window.RutaXPeople?.remember(data.messengers || []);
+  if(data.messenger) window.RutaXPeople?.remember(data.messenger);
   if((action==='pull'||action==='login')&&!data.unchanged) {
     version=data.version??null;
     activeSession=true;localStorage.setItem(TOKEN_KEY,'1');

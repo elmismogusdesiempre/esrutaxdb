@@ -583,6 +583,7 @@
 </style>
 <script src="vendor/purify.min.js"></script>
 <script src="safe-html.js"></script>
+<script src="people.js"></script>
 <script src="outbox.js"></script>
 <script src="api.js"></script>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
@@ -1258,10 +1259,11 @@
 
   function renderSplash() { document.getElementById('messengerOptions').innerHTML = '<div style="text-align:center;padding:22px;color:#fff;opacity:.75;font-size:14px;">Sin conexión al servidor</div>'; }
   function renderSplashFromAPI(messengers) {
+    RutaXPeople.remember(messengers || []);
     var box = document.getElementById('messengerOptions');
     if (!messengers || !messengers.length) { box.innerHTML = '<div style="text-align:center;padding:22px;color:#fff;opacity:.75;font-size:14px;">No hay mensajeros activos.</div>'; return; }
     var html = '';
-    for (var i = 0; i < messengers.length; i++) { var m = messengers[i]; html += '<button class="messenger-option" data-code="' + m.code + '" data-name="' + m.name + '" data-zone="' + m.zone + '"><span class="messenger-option-avatar">' + m.code + '</span><span class="messenger-option-info"><div class="messenger-option-name">' + m.name + '</div><div class="messenger-option-zone">' + (m.zone||'Sin zona') + '</div></span><span class="messenger-option-arrow">›</span></button>'; }
+    for (var i = 0; i < messengers.length; i++) { var m = messengers[i]; html += '<button class="messenger-option" data-code="' + m.code + '" data-name="' + m.name + '" data-zone="' + m.zone + '">' + RutaXPeople.avatar(m, 'messenger-option-avatar') + '<span class="messenger-option-info"><div class="messenger-option-name">' + m.name + '</div><div class="messenger-option-zone">' + (m.zone||'Sin zona') + '</div></span><span class="messenger-option-arrow">›</span></button>'; }
     box.innerHTML = html; attachSplashHandlers(box);
   }
   function attachSplashHandlers(box) { box.querySelectorAll('.messenger-option').forEach(function (btn) { btn.addEventListener('click', function () { openPinModal(btn.getAttribute('data-code'), btn.getAttribute('data-name'), btn.getAttribute('data-zone')); }); }); }
@@ -1271,7 +1273,7 @@
   function renderHeader() {
     if (!state.messenger) return;
     document.getElementById('messengerName').textContent = state.messenger.name;
-    document.getElementById('avatar').textContent = state.messenger.code;
+    RutaXPeople.paint(document.getElementById('avatar'), state.messenger);
     document.getElementById('messengerCode').textContent = 'Código: ' + state.messenger.code + ' · ' + state.messenger.zone;
   }
 
@@ -1592,7 +1594,7 @@
     html += '<div class="ev-block"><div class="ev-label">Dirección</div><div class="ev-value">' + (evt.address || '—') + '</div></div>';
     if (evt.recipient) html += '<div class="ev-block"><div class="ev-label">Recibido por</div><div class="ev-value">' + evt.recipient + '</div></div>';
     if (evt.note && evt.status !== 'undone') html += '<div class="ev-block note"><div class="ev-label">Nota</div><div class="ev-value">"' + evt.note + '"</div></div>';
-    html += '<div class="ev-grid"><div class="ev-block"><div class="ev-label">Fecha y hora</div><div class="ev-value" style="font-size:13px;">' + formatFullDate(evt.timestamp) + '</div></div><div class="ev-block"><div class="ev-label">Mensajero</div><div class="ev-value" style="font-size:13px;">' + (evt.messengerName || (state.messenger && state.messenger.name) || '—') + '<br><span style="color:var(--muted);font-weight:500;font-size:11px;">' + (evt.messengerCode || '') + '</span></div></div></div>';
+    html += '<div class="ev-grid"><div class="ev-block"><div class="ev-label">Fecha y hora</div><div class="ev-value" style="font-size:13px;">' + formatFullDate(evt.timestamp) + '</div></div><div class="ev-block"><div class="ev-label">Mensajero</div><div class="ev-value" style="font-size:13px;">' + RutaXPeople.identity(evt.messengerCode || (state.messenger && state.messenger.code), evt.messengerName || (state.messenger && state.messenger.name)) + '<br><span style="color:var(--muted);font-weight:500;font-size:11px;">' + (evt.messengerCode || '') + '</span></div></div></div>';
     if (evt.signature) html += '<div class="ev-signature-img"><div class="ev-label">Firma</div><img src="' + evt.signature + '" /></div>'; else if (evt.signed) html += '<div class="ev-block"><div class="ev-label">Firma</div><div class="ev-value" style="font-size:13px;">✍️ Firmado (en la foto)</div></div>';
     if (evt.gps) html += '<div class="ev-block"><div class="ev-label">GPS</div><div class="ev-value" style="font-size:13px;">' + evt.gps.lat.toFixed(5) + ', ' + evt.gps.lng.toFixed(5) + (evt.gps.accuracy ? '<br><span style="color:var(--muted);font-weight:500;font-size:11px;">±' + evt.gps.accuracy + ' m</span>' : '') + '</div></div>';
     if (evt.status === 'delivered') {
@@ -1730,7 +1732,7 @@
   function closeSearch() { document.getElementById('searchOverlay').classList.remove('active'); }
 
   function openSettings() { 
-    document.getElementById('settingsAccountText').textContent = 'Estás como: ' + state.messenger.name + ' (' + state.messenger.code + ') · ' + state.messenger.zone; 
+    document.getElementById('settingsAccountText').innerHTML = RutaXPeople.identity(state.messenger);
     document.getElementById('csvPreviewBox').classList.add('hidden'); 
     pendingCSVItems = null; updateTogglesUI(); 
     document.getElementById('geocodeCountryInput').value = state.settings.geocodeCountry || '';
@@ -1854,7 +1856,7 @@
   function openPinModal(code, name, zone) {
     pinTarget = { code: code, name: name, zone: zone }; pinBuffer = '';
     document.getElementById('pinDots').innerHTML = '<span></span>'.repeat(code === 'ADMIN' ? 6 : 4);
-    document.getElementById('pinAvatar').textContent = code; document.getElementById('pinName').textContent = name; document.getElementById('pinZone').textContent = zone || '—'; document.getElementById('pinError').textContent = ''; updatePinDots();
+    RutaXPeople.paint(document.getElementById('pinAvatar'), RutaXPeople.get(code, name)); document.getElementById('pinName').textContent = name; document.getElementById('pinZone').textContent = zone || '—'; document.getElementById('pinError').textContent = ''; updatePinDots();
     var pad = document.getElementById('pinPad'); var html = '';
     for (var i = 1; i <= 9; i++) html += '<button class="pin-key" data-num="' + i + '">' + i + '</button>';
     html += '<button class="pin-key pin-key-empty" tabindex="-1"></button><button class="pin-key" data-num="0">0</button><button class="pin-key pin-key-del" data-action="del">⌫</button>';
@@ -1881,7 +1883,7 @@
   }
 
   function openAdminPanel() {
-    document.getElementById('adminSubtitle').textContent = 'Conectado como ' + (state.messenger ? state.messenger.name : 'Administrador');
+    document.getElementById('adminSubtitle').innerHTML = state.messenger ? RutaXPeople.identity(state.messenger) : 'Administrador';
     document.querySelectorAll('.admin-tab').forEach(function (t) { t.classList.remove('active'); }); document.querySelectorAll('.admin-view').forEach(function (v) { v.classList.remove('active'); });
     document.querySelector('.admin-tab[data-atab="mensajeros"]').classList.add('active'); document.getElementById('adminMensajerosView').classList.add('active');
     document.getElementById('adminOverlay').classList.add('active'); refreshAdminMensajeros();
@@ -1904,7 +1906,7 @@
       html += '<div class="admin-live-empty">Sin mensajeros.</div>';
     } else {
       adminState.messengers.forEach(function (m) {
-        html += '<div class="ms-card' + (m.active ? '' : ' inactive') + '" data-code="' + m.code + '"><div class="ms-avatar">' + m.code + '</div><div class="ms-info"><div class="ms-name">' + m.name + '</div><div class="ms-zone">' + (m.zone || 'Sin zona') + ' · <span class="ms-pin">PIN: ••••</span></div></div><div class="ms-right"><button class="ms-edit-btn" data-action="edit" data-code="' + m.code + '">Editar</button><button class="toggle-switch' + (m.active ? ' on' : '') + '" data-action="toggle" data-code="' + m.code + '"></button></div></div>';
+        html += '<div class="ms-card' + (m.active ? '' : ' inactive') + '" data-code="' + m.code + '">' + RutaXPeople.avatar(m, 'ms-avatar') + '<div class="ms-info"><div class="ms-name">' + m.name + '</div><div class="ms-zone">' + (m.zone || 'Sin zona') + ' · <span class="ms-pin">PIN: ••••</span></div></div><div class="ms-right"><button class="ms-edit-btn" data-action="edit" data-code="' + m.code + '">Editar</button><button class="toggle-switch' + (m.active ? ' on' : '') + '" data-action="toggle" data-code="' + m.code + '"></button></div></div>';
       });
     }
     html += '<button class="admin-add-btn" id="adminAddMsBtn">+ Agregar mensajero</button>';
@@ -1923,7 +1925,7 @@
   function openEditMessenger(mm) {
     adminState.editingCode = mm ? mm.code : null;
     document.getElementById('editMessengerTitle').textContent = mm ? 'Editar mensajero' : 'Nuevo mensajero';
-    document.getElementById('editMessengerSub').textContent = mm ? 'Cambia sus datos.' : 'Código automático';
+    document.getElementById('editMessengerSub').innerHTML = mm ? RutaXPeople.identity(mm) : 'Código automático';
     document.getElementById('editMsCode').value = mm ? mm.code : 'Auto'; document.getElementById('editMsName').value = mm ? mm.name : ''; document.getElementById('editMsZone').value = mm && mm.zone !== 'Sin asignar' ? mm.zone : ''; document.getElementById('editMsPin').value = ''; document.getElementById('editMsPin').placeholder = mm ? 'Dejar vacío para conservar PIN' : 'PIN de 4 dígitos';
     var delBtn = document.getElementById('editMsDeleteBtn');
     if (mm) delBtn.style.display = 'block'; else delBtn.style.display = 'none';
@@ -1955,7 +1957,7 @@
       var st = m.stats; var total = st.routeTotal || 1; var pct = st.routeTotal ? Math.round((st.delivered / total) * 100) : 0; var sc = 'st-idle', dot = '🔴';
       if (st.lastActivity) { var mn = Math.round((now - st.lastActivity) / 60000); if (mn < 30) { sc = 'st-fresh'; dot = '🟢'; } else if (mn < 60) { sc = 'st-paused'; dot = '🟡'; } }
       var last = st.lastActivity ? 'Última: ' + formatTime(st.lastActivity) : 'Sin actividad';
-      html += '<div class="live-card ' + sc + '" data-code="' + m.code + '"><div class="live-card-head"><div><div class="live-name">' + m.name + '</div><div class="live-zone">' + m.code + ' · ' + (m.zone||'') + '</div></div><div class="live-status-dot">' + dot + '</div></div><div class="live-progress-bar"><div class="live-progress-fill" style="width:' + pct + '%"></div></div><div class="live-progress-text">' + st.delivered + ' de ' + st.routeTotal + ' · ' + pct + '%</div><div class="live-meta"><span>🕒 ' + last + '</span><span class="live-sig-count">✍️ ' + st.signed + '</span>' + (st.issues ? '<span style="color:#b45309;">⚠ ' + st.issues + '</span>' : '') + '</div></div>';
+      html += '<div class="live-card ' + sc + '" data-code="' + m.code + '"><div class="live-card-head"><div class="rx-identity">' + RutaXPeople.avatar(m, 'ms-avatar') + '<div><div class="live-name">' + m.name + '</div><div class="live-zone">' + m.code + ' · ' + (m.zone||'') + '</div></div></div><div class="live-status-dot">' + dot + '</div></div><div class="live-progress-bar"><div class="live-progress-fill" style="width:' + pct + '%"></div></div><div class="live-progress-text">' + st.delivered + ' de ' + st.routeTotal + ' · ' + pct + '%</div><div class="live-meta"><span>🕒 ' + last + '</span><span class="live-sig-count">✍️ ' + st.signed + '</span>' + (st.issues ? '<span style="color:#b45309;">⚠ ' + st.issues + '</span>' : '') + '</div></div>';
     });
     box.innerHTML = html;
     box.querySelectorAll('.live-card').forEach(function (c) { c.addEventListener('click', function () { var mm = adminState.live.find(function (x) { return x.code === c.getAttribute('data-code'); }); if (mm) { adminState.drillDown = mm; renderAdminDrillDown(); } }); });
@@ -1969,7 +1971,7 @@
 
   function renderAdminDrillDown() {
     var box = document.getElementById('adminVivoView'); var m = adminState.drillDown; if (!m) { renderAdminLive(); return; }
-    var html = '<div class="admin-drill-header"><button class="admin-drill-back" id="adminDrillBack">←</button><div class="admin-drill-title">' + m.name + ' · ' + m.events.length + ' registro' + (m.events.length === 1 ? '' : 's') + '</div></div>';
+    var html = '<div class="admin-drill-header"><button class="admin-drill-back" id="adminDrillBack">←</button><div class="admin-drill-title">' + RutaXPeople.identity(m) + ' · ' + m.events.length + ' registro' + (m.events.length === 1 ? '' : 's') + '</div></div>';
     if (!m.events.length) { html += '<div class="admin-live-empty">Sin registros en esta fecha.</div>'; box.innerHTML = html; document.getElementById('adminDrillBack').addEventListener('click', function () { adminState.drillDown = null; renderAdminLive(); }); return; }
     m.events.forEach(function (e) {
       var stLbl, stCls; if (e.status === 'delivered') { stLbl = '✓ Entregado'; stCls = 'delivered'; } else if (e.status === 'undone') { stLbl = '↺ Anulada'; stCls = 'undone'; } else { stLbl = '⚠ Novedad'; stCls = 'issue'; }
@@ -2022,7 +2024,7 @@
     var list = document.getElementById('adMsgList'); var f = (desktopAdminState.filter || '').toLowerCase();
     var ff = desktopAdminState.messengers.filter(function (m) { if (!f) return true; return (m.name + ' ' + m.code + ' ' + (m.zone || '')).toLowerCase().indexOf(f) >= 0; });
     if (!ff.length) { list.innerHTML = '<div style="padding:20px;text-align:center;color:var(--muted);font-size:12px;">Sin resultados</div>'; return; }
-    list.innerHTML = ff.map(function (m) { return '<div class="ad-msg-item' + (m.code === desktopAdminState.selectedCode ? ' active' : '') + (m.active ? '' : ' inactive') + '" data-code="' + m.code + '"><div class="ad-mini-avatar">' + m.code + '</div><div class="ad-mini-info"><div class="ad-mini-name">' + m.name + '</div><div class="ad-mini-zone">' + (m.zone||'Sin zona') + '</div></div><div class="ad-dot' + (m.active ? ' on' : '') + '"></div></div>'; }).join('');
+    list.innerHTML = ff.map(function (m) { return '<div class="ad-msg-item' + (m.code === desktopAdminState.selectedCode ? ' active' : '') + (m.active ? '' : ' inactive') + '" data-code="' + m.code + '">' + RutaXPeople.avatar(m, 'ad-mini-avatar') + '<div class="ad-mini-info"><div class="ad-mini-name">' + m.name + '</div><div class="ad-mini-zone">' + (m.zone||'Sin zona') + '</div></div><div class="ad-dot' + (m.active ? ' on' : '') + '"></div></div>'; }).join('');
     list.querySelectorAll('.ad-msg-item').forEach(function (it) { it.addEventListener('click', function () { desktopAdminState.selectedCode = it.getAttribute('data-code'); renderDesktopSidebar(); if (desktopAdminState.activeTab === 'mensajeros') loadDesktopMessengerDetail(); }); });
   }
 
@@ -2056,7 +2058,7 @@
 
   function renderDesktopMessengerDetail(mm) {
     var main = document.getElementById('adMain'); var routes = desktopAdminState.selectedRoutes; var st = mm.stats || {}; var pend = routes.filter(function (r) { return r.status === 'pending'; }); var del = routes.filter(function (r) { return r.status === 'delivered'; });
-    var html = '<div class="ad-detail-card"><div class="ad-detail-header"><div><div class="ad-detail-name">' + mm.name + '</div><div class="ad-detail-meta">' + mm.code + ' · ' + (mm.zone||'Sin zona') + ' · PIN <strong style="color:var(--ink);font-family:monospace;">••••</strong></div></div><div class="ad-detail-actions"><button class="ad-btn secondary" id="adEditBtn">✏️ Editar</button><button class="ad-btn ' + (mm.active ? 'danger' : 'primary') + '" id="adToggleBtn">' + (mm.active ? '⏸ Deshabilitar' : '▶ Habilitar') + '</button></div></div><div class="ad-stats-row"><div class="ad-stat"><div class="ad-stat-value">' + routes.length + '</div><div class="ad-stat-label">Rutas</div></div><div class="ad-stat"><div class="ad-stat-value" style="color:var(--green-dark);">' + del.length + '</div><div class="ad-stat-label">Entregadas</div></div><div class="ad-stat"><div class="ad-stat-value">' + pend.length + '</div><div class="ad-stat-label">Pendientes</div></div><div class="ad-stat"><div class="ad-stat-value" style="color:var(--green-dark);">' + (st.signedToday || 0) + '</div><div class="ad-stat-label">Firmas hoy</div></div></div><div style="display:flex;gap:10px;flex-wrap:wrap;"><button class="ad-btn accent" id="adAssignCsvBtn">📁 Asignar ruta CSV</button><button class="ad-btn secondary" id="adRefreshRoutesBtn">🔄 Actualizar</button></div></div>';
+    var html = '<div class="ad-detail-card"><div class="ad-detail-header"><div class="rx-identity">' + RutaXPeople.avatar(mm, 'ms-avatar') + '<div><div class="ad-detail-name">' + mm.name + '</div><div class="ad-detail-meta">' + mm.code + ' · ' + (mm.zone||'Sin zona') + ' · PIN <strong style="color:var(--ink);font-family:monospace;">••••</strong></div></div></div><div class="ad-detail-actions"><button class="ad-btn secondary" id="adEditBtn">✏️ Editar</button><button class="ad-btn ' + (mm.active ? 'danger' : 'primary') + '" id="adToggleBtn">' + (mm.active ? '⏸ Deshabilitar' : '▶ Habilitar') + '</button></div></div><div class="ad-stats-row"><div class="ad-stat"><div class="ad-stat-value">' + routes.length + '</div><div class="ad-stat-label">Rutas</div></div><div class="ad-stat"><div class="ad-stat-value" style="color:var(--green-dark);">' + del.length + '</div><div class="ad-stat-label">Entregadas</div></div><div class="ad-stat"><div class="ad-stat-value">' + pend.length + '</div><div class="ad-stat-label">Pendientes</div></div><div class="ad-stat"><div class="ad-stat-value" style="color:var(--green-dark);">' + (st.signedToday || 0) + '</div><div class="ad-stat-label">Firmas hoy</div></div></div><div style="display:flex;gap:10px;flex-wrap:wrap;"><button class="ad-btn accent" id="adAssignCsvBtn">📁 Asignar ruta CSV</button><button class="ad-btn secondary" id="adRefreshRoutesBtn">🔄 Actualizar</button></div></div>';
     html += '<div class="ad-section-title"><span>Rutas del mensajero</span><span style="font-weight:600;text-transform:none;color:var(--muted);">' + routes.length + ' totales</span></div>';
     html += '<div class="ad-routes-toolbar"><input type="text" id="adRoutesSearch" placeholder="🔍 Buscar por cliente, guía, dirección o quién recibió..." value="' + (desktopAdminState.routesFilter || '').replace(/"/g, '&quot;') + '" /><span class="ad-routes-toolbar-count" id="adRoutesCount"></span></div>';
     html += '<div id="adRoutesTableWrap">' + renderRoutesTable(routes, desktopAdminState.routesFilter) + '</div>';
@@ -2091,7 +2093,7 @@
         desktopAdminState.live.forEach(function (m) {
           var st = m.stats; var pct = st.routeTotal ? Math.round((st.delivered / st.routeTotal) * 100) : 0; var sc = 'st-idle', dot = '🔴';
           if (st.lastActivity) { var mn = Math.round((now - st.lastActivity) / 60000); if (mn < 30) { sc = 'st-fresh'; dot = '🟢'; } else if (mn < 60) { sc = 'st-paused'; dot = '🟡'; } }
-          html += '<div class="ad-live-card ' + sc + '" data-code="' + m.code + '"><div class="ad-live-head"><div><div class="ad-live-name">' + m.name + '</div><div class="ad-live-zone">' + m.code + ' · ' + (m.zone||'') + '</div></div><div class="ad-live-dot">' + dot + '</div></div><div class="ad-live-progress"><div class="ad-live-progress-fill" style="width:' + pct + '%"></div></div><div class="ad-live-text">' + st.delivered + ' de ' + st.routeTotal + ' · ' + pct + '%</div><div class="ad-live-meta"><span>✍️ <strong>' + st.signed + '</strong></span>' + (st.issues ? '<span style="color:#b45309;">⚠ <strong>' + st.issues + '</strong></span>' : '') + (st.lastActivity ? '<span>🕒 ' + formatTime(st.lastActivity) + '</span>' : '<span>Sin actividad</span>') + '</div></div>';
+          html += '<div class="ad-live-card ' + sc + '" data-code="' + m.code + '"><div class="ad-live-head"><div class="rx-identity">' + RutaXPeople.avatar(m, 'ms-avatar') + '<div><div class="ad-live-name">' + m.name + '</div><div class="ad-live-zone">' + m.code + ' · ' + (m.zone||'') + '</div></div></div><div class="ad-live-dot">' + dot + '</div></div><div class="ad-live-progress"><div class="ad-live-progress-fill" style="width:' + pct + '%"></div></div><div class="ad-live-text">' + st.delivered + ' de ' + st.routeTotal + ' · ' + pct + '%</div><div class="ad-live-meta"><span>✍️ <strong>' + st.signed + '</strong></span>' + (st.issues ? '<span style="color:#b45309;">⚠ <strong>' + st.issues + '</strong></span>' : '') + (st.lastActivity ? '<span>🕒 ' + formatTime(st.lastActivity) + '</span>' : '<span>Sin actividad</span>') + '</div></div>';
         });
         html += '</div>';
       }
@@ -2104,7 +2106,7 @@
 
   function openCsvModal(mm) {
     desktopAdminState.csvTarget = mm.code; desktopAdminState.csvItems = null; desktopAdminState.csvMode = 'append';
-    document.getElementById('adCsvTitle').textContent = 'Asignar ruta a ' + mm.name; document.getElementById('adCsvSubtitle').textContent = mm.code + ' · ' + (mm.zone || 'Sin zona');
+    document.getElementById('adCsvTitle').textContent = 'Asignar ruta a ' + mm.name; document.getElementById('adCsvSubtitle').innerHTML = RutaXPeople.identity(mm);
     document.getElementById('adCsvStep1').classList.remove('hidden'); document.getElementById('adCsvStep2').classList.add('hidden'); document.getElementById('adCsvConfirmBtn').classList.add('hidden'); document.getElementById('adCsvFileInput').value = '';
     document.querySelectorAll('.ad-csv-mode-option').forEach(function (o) { o.classList.remove('active'); }); document.querySelector('.ad-csv-mode-option[data-mode="append"]').classList.add('active'); document.getElementById('adCsvModal').classList.add('active');
   }
