@@ -1,6 +1,6 @@
 import {routeLiveConfig,notifyRouteChanged} from '../lib/route-live.js';
 import { db, eq, rpc, upsert, allRows } from '../lib/db.js';
-import { sha,newToken,hashPin,verifyPin,fail,text,validPin,validCode,settingsPatch,cleanPackage,validateDelivery,validatePush,publicProfile } from '../lib/core.js';
+import { sha,newToken,hashPin,verifyPin,fail,text,validPin,validCode,settingsPatch,cleanPackage,validateDelivery,validatePush,publicProfile,locationEdit,routePlanItems } from '../lib/core.js';
 import { sendNotice } from '../lib/push.js';
 const cookieName='rx_session';
 const filter = (code) => `code=eq.${eq(code)}`;
@@ -23,7 +23,7 @@ async function pull(p,version) {
   const [route,events,settings]=await Promise.all([
     allRows(`rx_packages?${filter(p.code)}&deleted_at=is.null&or=(status.neq.delivered,completed_at.gte.${eq(new Date(Date.now()-86400000).toISOString())})&order=position.asc,id.asc`),
     db(`rx_events?${filter(p.code)}&deleted_at=is.null&order=timestamp.desc,id.desc&limit=100&select=data`),effective(p)]);
-  return {ok:true,version:p.data_version,role:p.role,messenger:publicProfile(p),route:route.map(r=>({...r.data,status:r.status})),events:events.map(e=>e.data),settings};
+  return {ok:true,version:p.data_version,role:p.role,messenger:publicProfile(p),route:route.map(r=>({...r.data,status:r.status,locationVersion:r.location_version})),events:events.map(e=>e.data),settings};
 }
 async function upload(code,id,photos,signature) {
   if(!photos.length&&!signature) return {photoUrls:[],photoIds:[],signature:''};
@@ -75,6 +75,28 @@ export default async function handler(req,res) {
         const before=Number(payload.before),id=text(payload.id,120);
         if(!Number.isFinite(before)||!/^[-A-Za-z0-9_]{1,120}$/.test(id)) fail('Página inválida');
         result.events=(await db(`rx_events?${filter(p.code)}&deleted_at=is.null&or=(timestamp.lt.${before},and(timestamp.eq.${before},id.lt.${eq(id)}))&order=timestamp.desc,id.desc&limit=100&select=data`)).map(row=>row.data);break;
+      }
+      case 'package_location_get': {
+        const code=p.role==='admin'?text(payload.code,40):p.code;
+        if(!validCode(code))fail('Repartidor inválido');
+        const target=code===p.code?p:await profile(code);if(!target||target.role!=='messenger')fail('Repartidor no disponible',404);
+        const [pkg]=await db(`rx_packages?${filter(code)}&id=eq.${eq(text(payload.id,120))}&deleted_at=is.null&limit=1`);
+        if(!pkg)fail('El destino ya no está en la ruta',404);
+        result.package={...pkg.data,id:pkg.id,status:pkg.status,locationVersion:pkg.location_version};result.messenger=publicProfile(target);result.region=(await effective(target)).geocodeCountry||'';break;
+      }
+      case 'package_location_save': {
+        const code=p.role==='admin'?text(payload.code,40):p.code;
+        if(!validCode(code)||!text(payload.id,120))fail('Destino inválido');
+        const edit=locationEdit(payload);
+        const saved=await rpc('rx_edit_location',{p_actor:p.code,p_code:code,p_id:text(payload.id,120),p_address:edit.address,p_pin:edit.pin,p_version:edit.locationVersion});
+        if(!saved.ok)fail(saved.reason==='forbidden'?'No tienes permiso para editar este destino':saved.reason==='delivered'?'La entrega ya fue completada':saved.reason==='missing'?'El destino ya no está en la ruta':'La dirección cambió en otro dispositivo. Cierra y vuelve a abrir la edición.',saved.reason==='forbidden'?403:409);
+        result=saved;await notifyRouteChanged(code);break;
+      }
+      case 'save_route_plan': {
+        if(p.role!=='messenger')fail('Solo el repartidor puede ordenar su ruta',403);
+        const items=routePlanItems(payload.items),saved=await rpc('rx_save_route_plan',{p_actor:p.code,p_items:items});
+        if(!saved.ok)fail('La ruta cambió mientras se calculaba. Vuelve a optimizar.',409);
+        result=await pull(await profile(p.code));await notifyRouteChanged(p.code);break;
       }
       case 'save_settings': fail('Los ajustes operativos los configura el administrador',403);break;
       case 'profile': {
@@ -175,7 +197,7 @@ export default async function handler(req,res) {
         const code=text(payload.code,40);
         const [rows,events]=await Promise.all([allRows(`rx_packages?${filter(code)}&deleted_at=is.null&order=position.asc`),allRows(`rx_events?${filter(code)}&deleted_at=is.null&order=timestamp.desc&select=data`)]);
         const byPkg=new Map();for(const e of events) if(!byPkg.has(e.data.packageId)) byPkg.set(e.data.packageId,e.data);
-        result.routes=rows.map(r=>({...r.data,status:r.status,event:byPkg.get(r.id)}));break;
+        result.routes=rows.map(r=>({...r.data,status:r.status,locationVersion:r.location_version,event:byPkg.get(r.id)}));break;
       }
       case 'admin_live': {
         const since=+payload.since||Date.now()-86400000,until=+payload.until||since+86400000;
