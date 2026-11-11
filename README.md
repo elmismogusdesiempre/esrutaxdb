@@ -104,3 +104,13 @@ Si se pierde la conexión en tiempo real, sigue la sincronización por versión 
 Las fotos, firma y campos de una entrega abierta permanecen intactos. Si administración retira precisamente ese destino, aparece un aviso en el formulario y se evita enviar una entrega sobre una asignación retirada. Las evidencias locales pendientes de subida y los destinos manuales sin confirmar se conservan al refrescar.
 
 Realtime consume las cuotas incluidas del proyecto; no se ha contratado ningún plan ni servicio adicional. Se usa una suscripción por app del repartidor y un aviso pequeño por cambio de ruta, en lugar de aumentar la frecuencia de consultas a la base.
+
+### Corrección de destinos y contacto
+
+En una entrega pendiente, el repartidor puede abrir **Editar dirección / pin**. El admin dispone de **📍 Editar** en la tabla de rutas y de **Destinos** en el listado móvil. Se puede corregir el texto, buscar la zona y tocar el mapa o arrastrar el pin. La búsqueda es aproximada; el punto se confirma manualmente. Cambiar el texto desmarca el punto anterior para evitar guardar coordenadas que pertenecen a otra dirección. También se permite guardar solo el texto, sin ubicación.
+
+Los cambios se guardan en Supabase y avisan a la app del repartidor mediante el canal existente. Una edición simultánea se rechaza si la versión del destino cambió. Las entregas completadas conservan su dirección histórica. El SQL de esta ampliación está en `db/package-locations.sql` (aplicado al proyecto conectado).
+
+**Optimizar ruta** admite hasta 250 pendientes, conserva los pines manuales y guarda el orden en el servidor. Usa la heurística existente de distancias entre coordenadas; no calcula el tráfico ni garantiza el recorrido óptimo por carreteras.
+
+Desde la entrega, **Llamar** abre el teléfono y **WhatsApp: en camino** abre un borrador con cliente, guía, repartidor y RutaX España. El repartidor confirma la llamada o el envío en la aplicación correspondiente. Los enlaces se desactivan si falta el teléfono. Números locales de nueve dígitos usan España (+34), los de diez Colombia (+57); para otros países se debe importar el prefijo internacional.

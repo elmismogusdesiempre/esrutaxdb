@@ -15,6 +15,8 @@ async function request(action,payload={},role='messenger',extra={}) {
   if(p.pathname.endsWith('/rx_settings'))data=[{settings:{allowNoPhoto:false,requireRecipient:true,requireSignature:true}}];
   if(p.pathname.endsWith('/rx_rate_limit'))data=true;
   if(p.pathname.endsWith('/rx_delete_pending'))data={deleted:JSON.parse(options.body).p_ids,skipped:[]};
+  if(p.pathname.endsWith('/rx_edit_location'))data={ok:true,package:{id:'p1',address:JSON.parse(options.body).p_address,locationVersion:1}};
+  if(p.pathname.endsWith('/rx_save_route_plan'))data={ok:true};
   if(p.pathname.endsWith('/rx_assign_route'))data=JSON.parse(options.body).p_rows.length;
   return new Response(JSON.stringify(data),{status:200});
  };
@@ -47,3 +49,6 @@ test('asignar y retirar destinos avisa después de guardar los cambios',async()=
   const mutation=operations.findIndex(x=>x.path.endsWith('/'+rpc)),broadcast=operations.findIndex(x=>x.path.endsWith('/api/broadcast'));assert.ok(mutation>=0&&broadcast>mutation);
  }
 });
+
+test('editar destino usa propietario de sesión y publica solo después de guardar',async()=>{const {response,operations}=await request('package_location_save',{code:'OTRO',id:'p1',address:'Calle nueva',locationVersion:0,pin:{lat:3.4,lng:-76.5,role:'admin'}});assert.equal(response.statusCode,200);const i=operations.findIndex(x=>x.path.endsWith('/rx_edit_location'));assert.deepEqual(operations[i].body,{p_actor:'M1',p_code:'M1',p_id:'p1',p_address:'Calle nueva',p_pin:{lat:3.4,lng:-76.5},p_version:0});assert.ok(operations.findIndex(x=>x.path.endsWith('/api/broadcast'))>i);});
+test('admin edita destinos ajenos y no puede usar optimización de repartidor',async()=>{const {response,operations}=await request('package_location_save',{code:'M1',id:'p1',address:'Calle',locationVersion:0,pin:null},'admin');assert.equal(response.statusCode,200);assert.equal(operations.find(x=>x.path.endsWith('/rx_edit_location')).body.p_actor,'ADMIN');assert.equal((await request('save_route_plan',{items:[]},'admin')).response.statusCode,403);});

@@ -586,6 +586,8 @@
 <script src="people.js"></script>
 <script src="outbox.js"></script>
 <script src="api.js"></script>
+<script src="contact.js"></script>
+<script src="location-editor.js"></script>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <link rel="manifest" href="/manifest.webmanifest">
 <link rel="apple-touch-icon" href="/icon-192.png">
@@ -667,7 +669,7 @@
       <div class="map-shell" id="mapShell" data-interactive="false">
         <div class="map-container" id="routeMap"></div>
         <div class="map-guard" id="mapGuard" hidden>
-          <div class="map-guard-card"><strong>Desliza para ver tus clientes</strong><span>Doble toque para mover o ampliar el mapa</span><button type="button" id="mapActivateBtn" aria-controls="routeMap">Activar mapa</button></div>
+          <div class="map-guard-card"><strong>Desliza para ver la ruta</strong><span>Doble toque para usar el mapa</span><button type="button" id="mapActivateBtn" aria-controls="routeMap">Activar mapa</button></div>
         </div>
         <button type="button" class="map-relock" id="mapRelockBtn" aria-controls="routeMap" hidden>↕ Volver a desplazar</button>
       </div>
@@ -696,6 +698,7 @@
         <div class="info-row"><span class="label">Dirección</span><span id="detailAddress">—</span></div>
         <div class="info-row"><span class="label">Teléfono</span><span id="detailPhone">—</span></div>
       </div>
+      <div class="destination-actions"><button type="button" id="editDestinationBtn">📍 Editar dirección / pin</button><a id="clientCall">📞 Llamar</a><a id="clientWhatsApp" target="_blank" rel="noopener noreferrer">WhatsApp: en camino</a></div>
       <div id="recipientFieldWrap" class="hidden">
         <div class="section-label">Nombre de quien recibe</div>
         <input type="text" id="recipientInput" class="text-input" placeholder="Ej: María Fernández" autocomplete="off" />
@@ -1412,7 +1415,7 @@
     var q = address + (country ? ', ' + country : '');
     
     // 1. Intentar con Photon (Komoot)
-    var photonUrl = 'https://photon.komoot.io/api/?q=' + encodeURIComponent(q) + '&limit=1&lang=es';
+    var photonUrl = 'https://photon.komoot.io/api/?q=' + encodeURIComponent(q) + '&limit=1';
     
     return fetch(photonUrl)
       .then(function(r) { 
@@ -1447,9 +1450,9 @@
 
   async function optimizeRoute() {
     if (isOptimizing) return;
-    var pending = state.route.filter(function (p) { return p.status !== 'delivered'; });
+    var pending = state.route.filter(function (p) { return p.status !== 'delivered'; }).map(function(p){return Object.assign({},p);});
     if (pending.length < 2) { showToast('⚠ Necesitas al menos 2 paradas pendientes', 2400); return; }
-    if (pending.length > 80) { showToast('⚠ Máximo 80 paradas por optimización', 2600); return; }
+    if (pending.length > 250) { showToast('⚠ Máximo 250 paradas por optimización', 2600); return; }
     var btn = document.getElementById('optimizeBtn'); var prog = document.getElementById('optimizeProgress'); var txt = document.getElementById('optimizeText'); var sub = document.getElementById('optimizeSubtext');
     isOptimizing = true; btn.disabled = true; prog.classList.remove('hidden');
     try {
@@ -1473,15 +1476,16 @@
         }
       }
       var withCoords = pending.filter(function (p) { return typeof p.lat === 'number' && typeof p.lng === 'number'; });
-      if (withCoords.length < 2) throw new Error('No hay suficientes coordenadas. Añade columnas lat/lng al CSV o comprueba las direcciones.');
+      if (withCoords.length < 2) throw new Error('No hay suficientes coordenadas. Edita la dirección y coloca el pin en el mapa.');
       txt.textContent = 'Calculando ruta óptima...'; sub.textContent = withCoords.length + ' paradas con coordenadas';
       var origin; if (currentGPS && typeof currentGPS.lat === 'number') { origin = { lat: currentGPS.lat, lng: currentGPS.lng }; } else { origin = { lat: withCoords[0].lat, lng: withCoords[0].lng }; }
       var ordered = nearestNeighbor(withCoords, origin); ordered = twoOpt(ordered);
       var delivered = state.route.filter(function (p) { return p.status === 'delivered'; }); var maxOrder = 0; delivered.forEach(function (p) { if ((p.order || 0) > maxOrder) maxOrder = p.order; });
       ordered.forEach(function (p, idx) { p.order = maxOrder + idx + 1; });
       var noCoords = pending.filter(function (p) { return typeof p.lat !== 'number' || typeof p.lng !== 'number'; }); noCoords.forEach(function (p, idx) { p.order = maxOrder + ordered.length + idx + 1; });
-      state.route.sort(function (a, b) { return (a.order || 0) - (b.order || 0); });
-      saveMessengerData(); renderRoute(); renderEvents();
+      var plan=pending.map(function(p){var item={id:p.id,order:p.order,locationVersion:p.locationVersion||0};if(Number.isFinite(p.lat)&&Number.isFinite(p.lng)){item.lat=p.lat;item.lng=p.lng;}return item;});
+      var saved=await RutaXAPI.request('save_route_plan',{items:plan});
+      window.RutaXUI.apply(saved);
       var msg = '✓ Ruta optimizada · ' + ordered.length + ' paradas'; if (geocodedFail > 0) msg += ' · ' + geocodedFail + ' sin geolocalizar';
       showToast(msg, 3000);
     } catch (e) { console.error('Optimize error:', e); showToast('⚠ ' + (e.message || 'Error al optimizar'), 3400); }
@@ -1544,6 +1548,8 @@
     document.getElementById('detailTitle').textContent = isPickup ? 'Registrar recogida' : 'Registrar evidencia';
     document.getElementById('detailGuide').textContent = 'Guía ' + (pkg.guide || '—');
     document.getElementById('detailClient').textContent = pkg.client; document.getElementById('detailAddress').textContent = pkg.address; document.getElementById('detailPhone').textContent = pkg.phone || '—';
+    var links=RutaXContact.links(pkg,state.messenger);['clientCall','clientWhatsApp'].forEach(function(id,i){var a=document.getElementById(id),url=i?links.whatsapp:links.tel;if(url)a.href=url;else a.removeAttribute('href');a.setAttribute('aria-disabled',String(!url));});
+    document.getElementById('editDestinationBtn').onclick=function(){RutaXLocation.open(state.messenger.code,pkg.id);};
     var be = document.getElementById('btnEntregado'); be.textContent = isPickup ? '✓ Recogido' : '✓ Entregado'; if (isPickup) be.classList.add('pickup'); else be.classList.remove('pickup');
     document.getElementById('recipientInput').value = ''; document.getElementById('noteInput').value = ''; document.getElementById('photoInput').value = '';
     updateEvidenceFormUI(); document.getElementById('detailOverlay').classList.add('active');
@@ -1954,7 +1960,7 @@
       html += '<div class="admin-live-empty">Sin mensajeros.</div>';
     } else {
       adminState.messengers.forEach(function (m) {
-        html += '<div class="ms-card' + (m.active ? '' : ' inactive') + '" data-code="' + m.code + '">' + RutaXPeople.avatar(m, 'ms-avatar') + '<div class="ms-info"><div class="ms-name">' + m.name + '</div><div class="ms-zone">' + (m.zone || 'Sin zona') + ' · <span class="ms-pin">PIN: ••••</span></div></div><div class="ms-right"><button class="ms-edit-btn" data-action="edit" data-code="' + m.code + '">Editar</button><button class="toggle-switch' + (m.active ? ' on' : '') + '" data-action="toggle" data-code="' + m.code + '"></button></div></div>';
+        html += '<div class="ms-card' + (m.active ? '' : ' inactive') + '" data-code="' + m.code + '">' + RutaXPeople.avatar(m, 'ms-avatar') + '<div class="ms-info"><div class="ms-name">' + m.name + '</div><div class="ms-zone">' + (m.zone || 'Sin zona') + ' · <span class="ms-pin">PIN: ••••</span></div></div><div class="ms-right"><button class="ms-edit-btn" data-action="destinations" data-code="' + m.code + '">Destinos</button><button class="ms-edit-btn" data-action="edit" data-code="' + m.code + '">Editar</button><button class="toggle-switch' + (m.active ? ' on' : '') + '" data-action="toggle" data-code="' + m.code + '"></button></div></div>';
       });
     }
     html += '<button class="admin-add-btn" id="adminAddMsBtn">+ Agregar mensajero</button>';
@@ -1967,6 +1973,7 @@
         RutaXAPI.adminUpdateMessenger({ code: mm.code, active: na }).then(function () { mm.active = na; showToast(na ? '✓ Habilitado' : '⏸ Deshabilitado', 1600); renderAdminMensajeros(); }).catch(function (err) { b.classList.toggle('on', mm.active); showToast('⚠ ' + (err.message || 'Error'), 2400); });
       });
     });
+    box.querySelectorAll('[data-action="destinations"]').forEach(function(b){b.onclick=function(){desktopAdminState.selectedCode=b.dataset.code;openAdminDesktop();};});
     var a = document.getElementById('adminAddMsBtn'); if (a) a.addEventListener('click', function () { openEditMessenger(null); });
   }
 
@@ -2094,7 +2101,7 @@
   function renderRoutesTable(routes, filter) {
     var q = normalizeQuery(filter || ''), filtered=filteredDesktopRoutes(routes,filter);
     if (!filtered.length) return '<div class="ad-empty" style="padding:40px 20px;"><div class="ad-empty-icon">🔍</div><div>Sin resultados' + (q ? ' para "' + filter + '"' : '') + '</div></div>';
-    var html = '<table class="ad-table"><thead><tr><th style="width:42px;"><input type="checkbox" id="adSelectVisiblePending" aria-label="Seleccionar todos los pendientes visibles"></th><th style="width:56px;">Foto</th><th>#</th><th>Guía</th><th>Cliente</th><th>Dirección</th><th>Tipo</th><th>Estado</th></tr></thead><tbody>';
+    var html = '<table class="ad-table"><thead><tr><th style="width:42px;"><input type="checkbox" id="adSelectVisiblePending" aria-label="Seleccionar todos los pendientes visibles"></th><th style="width:56px;">Foto</th><th>#</th><th>Guía</th><th>Cliente</th><th>Dirección</th><th>Tipo</th><th>Estado</th><th>Ubicación</th></tr></thead><tbody>';
     var sorted = filtered.slice().sort(function (a, b) { return a.order - b.order; });
     sorted.forEach(function (r) {
       var hasEvt = !!r.event; var photoUrl = hasEvt && r.event.photos && r.event.photos.length ? r.event.photos[0] : null;
@@ -2104,7 +2111,7 @@
       var sigBadge = hasEvt && r.event.signed ? ' <span style="font-size:11px;">✍️</span>' : ''; var actionBadge = hasEvt ? '<span class="ad-row-action-badge">▶ Ver</span>' : '';
       var checked=desktopAdminState.selectedRouteIds.has(r.id);
       var checkbox='<input type="checkbox" data-select-route="'+routeHtml(r.id)+'" aria-label="Seleccionar pendiente '+routeHtml(r.guide||r.client||r.id)+'" '+(checked?'checked ':'')+(r.status==='pending'?'':'disabled title="Solo se pueden retirar destinos pendientes"')+'>';
-      html += '<tr class="' + (hasEvt ? 'ad-row-clickable ' : '') + (checked?'ad-row-selected':'') + '" data-ruta-id="' + r.id + '"><td>' + checkbox + '</td><td>' + thumbCell + '</td><td style="font-weight:700;color:var(--muted);">' + r.order + '</td><td style="font-family:monospace;font-weight:600;">' + (r.guide || '—') + '</td><td>' + (r.client || '—') + '</td><td style="color:var(--muted);">' + (r.address || '—') + '</td><td>' + (r.type === 'pickup' ? '<span style="background:#ede9fe;color:var(--purple);padding:2px 6px;border-radius:6px;font-size:10px;font-weight:700;">📤</span>' : '<span style="color:var(--muted);font-size:11px;">📦</span>') + '</td><td style="font-weight:700;color:' + statusCol + ';">' + statusLbl + sigBadge + actionBadge + '</td></tr>';
+      html += '<tr class="' + (hasEvt ? 'ad-row-clickable ' : '') + (checked?'ad-row-selected':'') + '" data-ruta-id="' + r.id + '"><td>' + checkbox + '</td><td>' + thumbCell + '</td><td style="font-weight:700;color:var(--muted);">' + r.order + '</td><td style="font-family:monospace;font-weight:600;">' + (r.guide || '—') + '</td><td>' + (r.client || '—') + '</td><td style="color:var(--muted);">' + (r.address || '—') + '</td><td>' + (r.type === 'pickup' ? '<span style="background:#ede9fe;color:var(--purple);padding:2px 6px;border-radius:6px;font-size:10px;font-weight:700;">📤</span>' : '<span style="color:var(--muted);font-size:11px;">📦</span>') + '</td><td style="font-weight:700;color:' + statusCol + ';">' + statusLbl + sigBadge + actionBadge + '</td><td>'+ (r.status!=='delivered'?'<button type="button" data-edit-location="'+routeHtml(r.id)+'">📍 Editar</button>':'—')+'</td></tr>';
     });
     html += '</tbody></table>'; return html;
   }
@@ -2118,6 +2125,7 @@
     if(count)count.textContent=ids.size+' seleccionado'+(ids.size===1?'':'s');
   }
   function wireRouteRows() {
+    document.querySelectorAll('[data-edit-location]').forEach(function(b){b.onclick=function(){RutaXLocation.open(desktopAdminState.selectedCode,b.dataset.editLocation);};});
     document.querySelectorAll('#adRoutesTableWrap tr.ad-row-clickable').forEach(function(row){row.onclick=function(e){if(e.target.closest('input,button,label'))return;var route=desktopAdminState.selectedRoutes.find(function(r){return r.id===row.dataset.rutaId;});if(route&&route.event)openEventDetail(route.event);};});
     document.querySelectorAll('#adRoutesTableWrap [data-select-route]').forEach(function(box){box.disabled=box.disabled||desktopAdminState.deletingRoutes;box.onchange=function(){if(box.checked)desktopAdminState.selectedRouteIds.add(box.dataset.selectRoute);else desktopAdminState.selectedRouteIds.delete(box.dataset.selectRoute);box.closest('tr').classList.toggle('ad-row-selected',box.checked);updatePendingSelection();};});
     var all=document.getElementById('adSelectVisiblePending');
@@ -2243,6 +2251,7 @@
   }
 
   window.RutaXUI = {
+    locationSaved: function(pkg,code){if(state.messenger&&state.messenger.code===code){var old=state.route.find(function(r){return r.id===pkg.id;});if(old){Object.keys(old).forEach(function(k){if(!(k in pkg))delete old[k];});Object.assign(old,pkg);}if(currentPackage&&currentPackage.id===pkg.id){Object.assign(currentPackage,pkg);document.getElementById('detailAddress').textContent=pkg.address;}saveMessengerData();renderRoute();}if(desktopAdminState.selectedCode===code&&document.getElementById('adminDesktopOverlay').classList.contains('active'))loadDesktopMessengerDetail();},
     parseCSV: function(text) { return rowsToItems(parseCSV(text)); },
     toast: showToast,
     historyCursor: function(){ var sorted=state.events.slice().sort(function(a,b){return b.timestamp-a.timestamp || b.id.localeCompare(a.id);});return sorted[sorted.length-1] || null; },
@@ -2264,7 +2273,9 @@
       var removed=Array.from(oldPending).filter(function(id){return !newPending.has(id);}).length;
       // Solo se repintan lista, mapa y registro: las fotos, firma y campos abiertos permanecen intactos.
       if(currentPackage){
-        var withdrawn=!state.route.some(function(r){return r.id===currentPackage.id;});
+        var updatedPackage=state.route.find(function(r){return r.id===currentPackage.id;});
+        var withdrawn=!updatedPackage;
+        if(updatedPackage){Object.assign(currentPackage,updatedPackage);document.getElementById('detailAddress').textContent=updatedPackage.address;}
         var previouslyWithdrawn=!!currentPackage.routeWithdrawn;currentPackage.routeWithdrawn=withdrawn;
         var notice=document.getElementById('routeChangeNotice');notice.classList.toggle('hidden',!withdrawn);
         if(withdrawn){notice.textContent='El administrador retiró este destino de tu ruta. La evidencia que estabas capturando sigue en pantalla.';document.getElementById('btnEntregado').disabled=true;document.getElementById('btnNovedad').disabled=true;}
